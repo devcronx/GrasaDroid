@@ -35,7 +35,7 @@ VIRGL_COMMIT="482f9d8b8c2d2288efa10a027116216909d2c226"
 EPOXY_PATCH_URL="https://raw.githubusercontent.com/leviidev/husk/HEAD/patches/husk-epoxy-ios-egl-path.patch"
 
 banner() { printf '\n\033[0;32m=== %s ===\033[0m\n' "$*"; }
-fail()   { printf '\033[0;31m[FAIL] %s (see %s)\033[0m\n' "$1" "$2"; exit 1; }
+fail()   { printf '\033[0;31m[FAIL] %s\033[0m\n' "$1"; [ -n "$2" ] && [ -f "$2" ] && tail -25 "$2"; exit 1; }
 
 # ---------------------------------------------------------------- toolchain
 SDKROOT="$(xcrun --sdk $SDK --show-sdk-path)"
@@ -117,10 +117,11 @@ if [ ! -f "$PREFIX/lib/libANGLE-shared.dylib" ]; then
     # Pin a WebKit previo al refactor de ResourceMap (ANGLE 2025-11-28):
     # WebKit-main trae un static_assert(kNeedsLock) inconsistente que rompe
     # la compilación con cualquier clang. No perseguir main.
-    WEBKIT_PIN="ed8bfa2b0f4d"
+    # (SHA completo: git fetch por SHA corto no resuelve en GitHub)
+    WEBKIT_PIN="ed8bfa2b0f4d82867ddd51764ad66d5ddf4adb52"
     if [ ! -d "$WK" ]; then
         echo "[fetch] WebKit @ $WEBKIT_PIN"
-        git clone --no-checkout --depth 1 --filter=blob:none --sparse \
+        git clone --depth 1 --filter=blob:none --sparse \
             https://github.com/WebKit/WebKit.git "$WK" > "$ALOG" 2>&1 \
             || fail "webkit clone" "$ALOG"
         ( cd "$WK" \
