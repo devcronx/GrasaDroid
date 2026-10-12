@@ -27,8 +27,15 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             tag: 1
         )
 
+        let motor = UINavigationController(rootViewController: MotorViewController())
+        motor.tabBarItem = UITabBarItem(
+            title: "Motor",
+            image: UIImage(systemName: "cpu"),
+            tag: 2
+        )
+
         let tabs = UITabBarController()
-        tabs.viewControllers = [library, settings]
+        tabs.viewControllers = [library, settings, motor]
 
         window.rootViewController = tabs
         window.makeKeyAndVisible()

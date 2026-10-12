@@ -14,6 +14,8 @@
 		AAAAAAAAAAAAAAAAAAAAAA96 /* LibraryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999999999999999999999998 /* LibraryViewController.swift */; };
 		AAAAAAAAAAAAAAAAAAAAAA97 /* GameDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999999999999999999999999 /* GameDetailViewController.swift */; };
 		AAAAAAAAAAAAAAAAAAAAAA98 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99999999999999999999999A /* SettingsViewController.swift */; };
+		AAAAAAAAAAAAAAAAAAAAAA99 /* JITProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99999999999999999999999B /* JITProbe.swift */; };
+		AAAAAAAAAAAAAAAAAAAAAA9A /* MotorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99999999999999999999999C /* MotorViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +26,8 @@
 		999999999999999999999998 /* LibraryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryViewController.swift; sourceTree = "<group>"; };
 		999999999999999999999999 /* GameDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameDetailViewController.swift; sourceTree = "<group>"; };
 		99999999999999999999999A /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
+		99999999999999999999999B /* JITProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JITProbe.swift; sourceTree = "<group>"; };
+		99999999999999999999999C /* MotorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotorViewController.swift; sourceTree = "<group>"; };
 		999999999999999999999994 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		999999999999999999999995 /* GrasaDroid.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GrasaDroid.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -57,6 +61,8 @@
 				999999999999999999999998 /* LibraryViewController.swift */,
 				999999999999999999999999 /* GameDetailViewController.swift */,
 				99999999999999999999999A /* SettingsViewController.swift */,
+				99999999999999999999999B /* JITProbe.swift */,
+				99999999999999999999999C /* MotorViewController.swift */,
 				999999999999999999999994 /* Info.plist */,
 			);
 			path = GrasaDroid;
@@ -138,6 +144,8 @@
 				AAAAAAAAAAAAAAAAAAAAAA96 /* LibraryViewController.swift in Sources */,
 				AAAAAAAAAAAAAAAAAAAAAA97 /* GameDetailViewController.swift in Sources */,
 				AAAAAAAAAAAAAAAAAAAAAA98 /* SettingsViewController.swift in Sources */,
+				AAAAAAAAAAAAAAAAAAAAAA99 /* JITProbe.swift in Sources */,
+				AAAAAAAAAAAAAAAAAAAAAA9A /* MotorViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
