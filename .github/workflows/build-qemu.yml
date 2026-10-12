@@ -1,0 +1,52 @@
+name: Build QEMU for iOS
+
+# El motor del emulador: QEMU aarch64-softmmu como dylib para arm64-apple-ios.
+# Tarda 1-2h; corre en un workflow separado para no bloquear el build de la app.
+# Se dispara manualmente o al cambiar el script/workflow.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "scripts/build-qemu-ios.sh"
+      - ".github/workflows/build-qemu.yml"
+
+jobs:
+  build-qemu:
+    runs-on: macos-14
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install host prerequisites
+        run: |
+          brew install bison pkg-config gettext glib libgpg-error nasm meson ninja || true
+          pip3 install six pyparsing || pip3 install --break-system-packages six pyparsing
+          echo "$(brew --prefix bison)/bin" >> $GITHUB_PATH
+
+      - name: Restore sysroot cache
+        uses: actions/cache@v4
+        id: sysroot-cache
+        with:
+          path: third_party/ios-arm64
+          key: qemu-ios-v10.0.12-utm-deps-v1
+
+      - name: Build QEMU + deps for iOS
+        if: steps.sysroot-cache.outputs.cache-hit != 'true'
+        run: |
+          chmod +x scripts/build-qemu-ios.sh
+          bash scripts/build-qemu-ios.sh
+
+      - name: Verify dylib targets iOS
+        run: |
+          DYLIB="third_party/ios-arm64/lib/libqemu-aarch64-softmmu.dylib"
+          ls -lh "$DYLIB"
+          vtool -show-build "$DYLIB" | head -12 || true
+
+      - name: Upload dylib artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libqemu-ios-arm64
+          path: third_party/ios-arm64/lib/libqemu-aarch64-softmmu.dylib
+          if-no-files-found: error
