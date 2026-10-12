@@ -1,0 +1,53 @@
+name: Build QEMU GPU stack for iOS
+
+# Fase A del virgl: ANGLE + epoxy + virglrenderer para iOS arm64,
+# y QEMU reconfigurado con --enable-opengl --enable-virglrenderer.
+# El puente de display (fase C) y la imagen guest con drivers virgl (fase B)
+# son hitos separados.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "scripts/build-qemu-gpu-ios.sh"
+      - ".github/workflows/build-qemu-gpu.yml"
+
+jobs:
+  build-qemu-gpu:
+    runs-on: macos-14
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install host prerequisites
+        run: |
+          brew install bison pkg-config gettext glib libgpg-error nasm meson ninja || true
+          pip3 install six pyparsing || pip3 install --break-system-packages six pyparsing
+          echo "$(brew --prefix bison)/bin" >> $GITHUB_PATH
+
+      - name: Restore sysroot cache
+        uses: actions/cache@v4
+        id: sysroot-cache
+        with:
+          path: third_party/ios-arm64
+          key: qemu-ios-gpu-v1
+
+      - name: Build GPU stack + QEMU for iOS
+        if: steps.sysroot-cache.outputs.cache-hit != 'true'
+        run: |
+          chmod +x scripts/build-qemu-ios.sh scripts/build-qemu-gpu-ios.sh
+          bash scripts/build-qemu-gpu-ios.sh
+
+      - name: Verify dylibs target iOS
+        run: |
+          ls -lh third_party/ios-arm64/lib-gpu/
+          vtool -show-build third_party/ios-arm64/lib-gpu/libqemu-aarch64-softmmu.dylib | head -8 || true
+          vtool -show-build third_party/ios-arm64/lib-gpu/libANGLE-shared.dylib | head -8 || true
+
+      - name: Upload GPU dylibs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libqemu-gpu-ios-arm64
+          path: third_party/ios-arm64/lib-gpu/
+          if-no-files-found: error
