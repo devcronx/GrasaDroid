@@ -114,15 +114,21 @@ if [ ! -f "$PREFIX/lib/libANGLE-shared.dylib" ]; then
     banner "building ANGLE for iOS arm64"
     WK="$GPU/webkit"
     ALOG="$LOGS/angle.log"
+    # Pin a WebKit previo al refactor de ResourceMap (ANGLE 2025-11-28):
+    # WebKit-main trae un static_assert(kNeedsLock) inconsistente que rompe
+    # la compilación con cualquier clang. No perseguir main.
+    WEBKIT_PIN="ed8bfa2b0f4d"
     if [ ! -d "$WK" ]; then
-        echo "[fetch] WebKit sparse checkout (~260 MB)"
-        git clone --depth 1 --filter=blob:none --sparse \
+        echo "[fetch] WebKit @ $WEBKIT_PIN"
+        git clone --no-checkout --depth 1 --filter=blob:none --sparse \
             https://github.com/WebKit/WebKit.git "$WK" > "$ALOG" 2>&1 \
             || fail "webkit clone" "$ALOG"
+        ( cd "$WK" \
+          && git sparse-checkout set Source/ThirdParty/ANGLE Configurations Tools/Scripts Tools/ccache \
+          && git fetch --depth 1 origin "$WEBKIT_PIN" \
+          && git checkout -q "$WEBKIT_PIN" ) >> "$ALOG" 2>&1 \
+            || fail "webkit pin" "$ALOG"
     fi
-    ( cd "$WK" && git sparse-checkout set \
-        Source/ThirdParty/ANGLE Configurations Tools/Scripts Tools/ccache ) >> "$ALOG" 2>&1 \
-        || fail "webkit sparse-checkout" "$ALOG"
 
     cd "$WK/Source/ThirdParty/ANGLE"
     ALIASES="$GPU/angle-aliases.txt"
