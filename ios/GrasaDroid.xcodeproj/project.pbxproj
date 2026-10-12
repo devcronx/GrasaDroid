@@ -9,13 +9,21 @@
 /* Begin PBXBuildFile section */
 		AAAAAAAAAAAAAAAAAAAAAA91 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999999999999999999999991 /* AppDelegate.swift */; };
 		AAAAAAAAAAAAAAAAAAAAAA92 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999999999999999999999992 /* SceneDelegate.swift */; };
-		AAAAAAAAAAAAAAAAAAAAAA93 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999999999999999999999993 /* ViewController.swift */; };
+		AAAAAAAAAAAAAAAAAAAAAA94 /* GameItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999999999999999999999996 /* GameItem.swift */; };
+		AAAAAAAAAAAAAAAAAAAAAA95 /* GameCardCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999999999999999999999997 /* GameCardCell.swift */; };
+		AAAAAAAAAAAAAAAAAAAAAA96 /* LibraryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999999999999999999999998 /* LibraryViewController.swift */; };
+		AAAAAAAAAAAAAAAAAAAAAA97 /* GameDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999999999999999999999999 /* GameDetailViewController.swift */; };
+		AAAAAAAAAAAAAAAAAAAAAA98 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99999999999999999999999A /* SettingsViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		999999999999999999999991 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		999999999999999999999992 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		999999999999999999999993 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		999999999999999999999996 /* GameItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameItem.swift; sourceTree = "<group>"; };
+		999999999999999999999997 /* GameCardCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameCardCell.swift; sourceTree = "<group>"; };
+		999999999999999999999998 /* LibraryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryViewController.swift; sourceTree = "<group>"; };
+		999999999999999999999999 /* GameDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameDetailViewController.swift; sourceTree = "<group>"; };
+		99999999999999999999999A /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		999999999999999999999994 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		999999999999999999999995 /* GrasaDroid.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GrasaDroid.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -44,7 +52,11 @@
 			children = (
 				999999999999999999999991 /* AppDelegate.swift */,
 				999999999999999999999992 /* SceneDelegate.swift */,
-				999999999999999999999993 /* ViewController.swift */,
+				999999999999999999999996 /* GameItem.swift */,
+				999999999999999999999997 /* GameCardCell.swift */,
+				999999999999999999999998 /* LibraryViewController.swift */,
+				999999999999999999999999 /* GameDetailViewController.swift */,
+				99999999999999999999999A /* SettingsViewController.swift */,
 				999999999999999999999994 /* Info.plist */,
 			);
 			path = GrasaDroid;
@@ -121,7 +133,11 @@
 			files = (
 				AAAAAAAAAAAAAAAAAAAAAA91 /* AppDelegate.swift in Sources */,
 				AAAAAAAAAAAAAAAAAAAAAA92 /* SceneDelegate.swift in Sources */,
-				AAAAAAAAAAAAAAAAAAAAAA93 /* ViewController.swift in Sources */,
+				AAAAAAAAAAAAAAAAAAAAAA94 /* GameItem.swift in Sources */,
+				AAAAAAAAAAAAAAAAAAAAAA95 /* GameCardCell.swift in Sources */,
+				AAAAAAAAAAAAAAAAAAAAAA96 /* LibraryViewController.swift in Sources */,
+				AAAAAAAAAAAAAAAAAAAAAA97 /* GameDetailViewController.swift in Sources */,
+				AAAAAAAAAAAAAAAAAAAAAA98 /* SettingsViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
