@@ -10,6 +10,7 @@
 #
 # Este script es autocontenido: si el sysroot no trae las dependencias base,
 # primero corre scripts/build-qemu-ios.sh para construirlas.
+# (2026-10-12: fix aplicado al base — apply_patch separaba mal un `local` con set -u.)
 set -uo pipefail
 
 GRASA_ROOT="$(cd "$(dirname "$0")/.." && pwd)"

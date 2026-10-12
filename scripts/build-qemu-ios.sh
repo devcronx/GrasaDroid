@@ -141,7 +141,8 @@ for p in pixman-0.38.0.patch libslirp-v4.9.1.patch qemu-10.0.12-utm.patch; do
 done
 
 apply_patch() { # src-dir patch-file
-    local dir="$1" patch="$2" stamp="$SRC/$dir/.grasadroid-patched"
+    local dir="$1" patch="$2"
+    local stamp="$SRC/$dir/.grasadroid-patched"
     [ -f "$stamp" ] && return 0
     echo "[patch] $dir <- $patch"
     ( cd "$SRC/$dir" && patch -p1 -N --no-backup-if-mismatch -r - < "$PATCHDIR/$patch" ) >/dev/null 2>&1 || true
