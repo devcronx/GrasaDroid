@@ -9,18 +9,39 @@ import Darwin
 ///   prueba pasa.
 /// - Si no, `mmap` falla y la sonda reporta que el JIT no está disponible,
 ///   sin crashear la app.
+///
+/// Nota: `pthread_jit_write_protect_np` está marcada como no disponible en el
+/// SDK de iOS, así que se resuelve dinámicamente con `dlsym` (la función sí
+/// existe en el sistema en runtime).
 enum JITProbe {
     struct Result {
         let available: Bool
         let detail: String
     }
 
+    typealias JITWriteProtectFunc = @convention(c) (Int32) -> Void
+
+    private static func jitWriteProtect() -> JITWriteProtectFunc? {
+        guard let handle = dlopen(nil, RTLD_NOW),
+              let sym = dlsym(handle, "pthread_jit_write_protect_np") else {
+            return nil
+        }
+        return unsafeBitCast(sym, to: JITWriteProtectFunc.self)
+    }
+
     static func run() -> Result {
         let pageSize = Int(getpagesize())
         let failed = UnsafeMutableRawPointer(bitPattern: -1)
 
+        guard let setWriteProtect = jitWriteProtect() else {
+            return Result(
+                available: false,
+                detail: "No se encontró la función del sistema para JIT en este iOS."
+            )
+        }
+
         // 1. El hilo opta por la protección de escritura JIT.
-        pthread_jit_write_protect_np(1)
+        setWriteProtect(1)
 
         // 2. Mapear una página JIT (el kernel la niega sin entitlement/depurador).
         let prot: Int32 = PROT_READ | PROT_WRITE
@@ -38,12 +59,12 @@ enum JITProbe {
 
         // 3. Escribir código máquina ARM64 real: mov w0, #42; ret
         let code: [UInt32] = [0x52800540, 0xD65F03C0]
-        code.withUnsafeBufferPointer { buf in
+        _ = code.withUnsafeBufferPointer { buf in
             memcpy(page, buf.baseAddress!, buf.count * MemoryLayout<UInt32>.size)
         }
 
         // 4. Quitar el permiso de escritura: la página queda ejecutable.
-        pthread_jit_write_protect_np(0)
+        setWriteProtect(0)
 
         // 5. Ejecutarla de verdad y comprobar el resultado.
         typealias JITFunction = @convention(c) () -> Int32
