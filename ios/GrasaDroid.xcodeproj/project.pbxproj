@@ -16,10 +16,10 @@
 		AAAAAAAAAAAAAAAAAAAAAA98 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99999999999999999999999A /* SettingsViewController.swift */; };
 		AAAAAAAAAAAAAAAAAAAAAA99 /* JITProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99999999999999999999999B /* JITProbe.swift */; };
 		AAAAAAAAAAAAAAAAAAAAAA9A /* MotorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99999999999999999999999C /* MotorViewController.swift */; };
-		BBBBBBBBBBBBBBBBBBBBBBA1 /* QEMUBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBBBB91 /* QEMUBridge.m */; };
-		BBBBBBBBBBBBBBBBBBBBBBA2 /* QEMUDisplay.m in Sources */ = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBBBB93 /* QEMUDisplay.m */; };
-		BBBBBBBBBBBBBBBBBBBBBBA3 /* libqemu-aarch64-softmmu.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBBBB95 /* libqemu-aarch64-softmmu.dylib */; };
-		BBBBBBBBBBBBBBBBBBBBBBA4 /* libANGLE-shared.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBBBB96 /* libANGLE-shared.dylib */; };
+		DDDDDDDDDDDDDDDDDDDDDA1 /* QEMUBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = DDDDDDDDDDDDDDDDDDDDDD91 /* QEMUBridge.m */; };
+		DDDDDDDDDDDDDDDDDDDDDA2 /* QEMUDisplay.m in Sources */ = {isa = PBXBuildFile; fileRef = DDDDDDDDDDDDDDDDDDDDDD93 /* QEMUDisplay.m */; };
+		DDDDDDDDDDDDDDDDDDDDDA3 /* libqemu-aarch64-softmmu.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = DDDDDDDDDDDDDDDDDDDDDD95 /* libqemu-aarch64-softmmu.dylib */; };
+		DDDDDDDDDDDDDDDDDDDDDA4 /* libANGLE-shared.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = DDDDDDDDDDDDDDDDDDDDDD96 /* libANGLE-shared.dylib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,14 +34,14 @@
 		99999999999999999999999C /* MotorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotorViewController.swift; sourceTree = "<group>"; };
 		999999999999999999999994 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		999999999999999999999995 /* GrasaDroid.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GrasaDroid.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		BBBBBBBBBBBBBBBBBBBBBB90 /* QEMUBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = QEMUBridge.h; sourceTree = "<group>"; };
-		BBBBBBBBBBBBBBBBBBBBBB91 /* QEMUBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = QEMUBridge.m; sourceTree = "<group>"; };
-		BBBBBBBBBBBBBBBBBBBBBB92 /* QEMUDisplay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = QEMUDisplay.h; sourceTree = "<group>"; };
-		BBBBBBBBBBBBBBBBBBBBBB93 /* QEMUDisplay.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = QEMUDisplay.m; sourceTree = "<group>"; };
-		BBBBBBBBBBBBBBBBBBBBBB94 /* Frameworks */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Frameworks; sourceTree = "<group>"; };
-		BBBBBBBBBBBBBBBBBBBBBB95 /* libqemu-aarch64-softmmu.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = "Frameworks/libqemu-aarch64-softmmu.dylib"; sourceTree = "<group>"; };
-		BBBBBBBBBBBBBBBBBBBBBB96 /* libANGLE-shared.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = "Frameworks/libANGLE-shared.dylib"; sourceTree = "<group>"; };
-		BBBBBBBBBBBBBBBBBBBBBB97 /* GrasaDroid-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "GrasaDroid-Bridging-Header.h"; sourceTree = "<group>"; };
+		DDDDDDDDDDDDDDDDDDDDDD90 /* QEMUBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = QEMUBridge.h; sourceTree = "<group>"; };
+		DDDDDDDDDDDDDDDDDDDDDD91 /* QEMUBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = QEMUBridge.m; sourceTree = "<group>"; };
+		DDDDDDDDDDDDDDDDDDDDDD92 /* QEMUDisplay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = QEMUDisplay.h; sourceTree = "<group>"; };
+		DDDDDDDDDDDDDDDDDDDDDD93 /* QEMUDisplay.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = QEMUDisplay.m; sourceTree = "<group>"; };
+		DDDDDDDDDDDDDDDDDDDDDD94 /* Frameworks */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Frameworks; sourceTree = "<group>"; };
+		DDDDDDDDDDDDDDDDDDDDDD95 /* libqemu-aarch64-softmmu.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = "Frameworks/libqemu-aarch64-softmmu.dylib"; sourceTree = "<group>"; };
+		DDDDDDDDDDDDDDDDDDDDDD96 /* libANGLE-shared.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = "Frameworks/libANGLE-shared.dylib"; sourceTree = "<group>"; };
+		DDDDDDDDDDDDDDDDDDDDDD97 /* GrasaDroid-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "GrasaDroid-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -49,8 +49,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BBBBBBBBBBBBBBBBBBBBBBA3 /* libqemu-aarch64-softmmu.dylib in Frameworks */,
-				BBBBBBBBBBBBBBBBBBBBBBA4 /* libANGLE-shared.dylib in Frameworks */,
+				DDDDDDDDDDDDDDDDDDDDDA3 /* libqemu-aarch64-softmmu.dylib in Frameworks */,
+				DDDDDDDDDDDDDDDDDDDDDA4 /* libANGLE-shared.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,12 +78,12 @@
 				99999999999999999999999B /* JITProbe.swift */,
 				99999999999999999999999C /* MotorViewController.swift */,
 				999999999999999999999994 /* Info.plist */,
-				BBBBBBBBBBBBBBBBBBBBBB90 /* QEMUBridge.h */,
-				BBBBBBBBBBBBBBBBBBBBBB91 /* QEMUBridge.m */,
-				BBBBBBBBBBBBBBBBBBBBBB92 /* QEMUDisplay.h */,
-				BBBBBBBBBBBBBBBBBBBBBB93 /* QEMUDisplay.m */,
-				BBBBBBBBBBBBBBBBBBBBBB94 /* Frameworks */,
-				BBBBBBBBBBBBBBBBBBBBBB97 /* GrasaDroid-Bridging-Header.h */,
+				DDDDDDDDDDDDDDDDDDDDDD90 /* QEMUBridge.h */,
+				DDDDDDDDDDDDDDDDDDDDDD91 /* QEMUBridge.m */,
+				DDDDDDDDDDDDDDDDDDDDDD92 /* QEMUDisplay.h */,
+				DDDDDDDDDDDDDDDDDDDDDD93 /* QEMUDisplay.m */,
+				DDDDDDDDDDDDDDDDDDDDDD94 /* Frameworks */,
+				DDDDDDDDDDDDDDDDDDDDDD97 /* GrasaDroid-Bridging-Header.h */,
 			);
 			path = GrasaDroid;
 			sourceTree = "<group>";
@@ -166,15 +166,15 @@
 				AAAAAAAAAAAAAAAAAAAAAA98 /* SettingsViewController.swift in Sources */,
 				AAAAAAAAAAAAAAAAAAAAAA99 /* JITProbe.swift in Sources */,
 				AAAAAAAAAAAAAAAAAAAAAA9A /* MotorViewController.swift in Sources */,
-				BBBBBBBBBBBBBBBBBBBBBBA1 /* QEMUBridge.m in Sources */,
-				BBBBBBBBBBBBBBBBBBBBBBA2 /* QEMUDisplay.m in Sources */,
+				DDDDDDDDDDDDDDDDDDDDDA1 /* QEMUBridge.m in Sources */,
+				DDDDDDDDDDDDDDDDDDDDDA2 /* QEMUDisplay.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		BBBBBBBBBBBBBBBBBBBBBB91 /* Debug */ = {
+		DDDDDDDDDDDDDDDDDDDDDD91 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -189,7 +189,7 @@
 			};
 			name = Debug;
 		};
-		BBBBBBBBBBBBBBBBBBBBBB92 /* Release */ = {
+		DDDDDDDDDDDDDDDDDDDDDD92 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -203,7 +203,7 @@
 			};
 			name = Release;
 		};
-		BBBBBBBBBBBBBBBBBBBBBB93 /* Debug */ = {
+		DDDDDDDDDDDDDDDDDDDDDD93 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -224,7 +224,7 @@
 			};
 			name = Debug;
 		};
-		BBBBBBBBBBBBBBBBBBBBBB94 /* Release */ = {
+		DDDDDDDDDDDDDDDDDDDDDD94 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -251,8 +251,8 @@
 		CCCCCCCCCCCCCCCCCCCCCC91 /* Build configuration list for PBXProject "GrasaDroid" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				BBBBBBBBBBBBBBBBBBBBBB91 /* Debug */,
-				BBBBBBBBBBBBBBBBBBBBBB92 /* Release */,
+				DDDDDDDDDDDDDDDDDDDDDD91 /* Debug */,
+				DDDDDDDDDDDDDDDDDDDDDD92 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -260,8 +260,8 @@
 		CCCCCCCCCCCCCCCCCCCCCC92 /* Build configuration list for PBXNativeTarget "GrasaDroid" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				BBBBBBBBBBBBBBBBBBBBBB93 /* Debug */,
-				BBBBBBBBBBBBBBBBBBBBBB94 /* Release */,
+				DDDDDDDDDDDDDDDDDDDDDD93 /* Debug */,
+				DDDDDDDDDDDDDDDDDDDDDD94 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
