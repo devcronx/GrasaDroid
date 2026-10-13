@@ -72,13 +72,31 @@ static QEMUBridge *gShared = nil;
         return NO;
     }
 
-    // QEMU expone su main como qemu_main o main
-    self.qemuMain = (qemu_main_fn)dlsym(self.qemuHandle, "qemu_main");
-    if (!self.qemuMain) {
-        self.qemuMain = (qemu_main_fn)dlsym(self.qemuHandle, "main");
+    // Buscar el punto de entrada de QEMU con varios nombres posibles
+    const char *symbolNames[] = {
+        "qemu_main",
+        "main",
+        "_qemu_main",
+        "_main",
+        "qemu_init",
+        NULL
+    };
+
+    NSMutableString *tried = [NSMutableString string];
+    for (int i = 0; symbolNames[i] != NULL; i++) {
+        self.qemuMain = (qemu_main_fn)dlsym(self.qemuHandle, symbolNames[i]);
+        [tried appendFormat:@"%s ", symbolNames[i]];
+        if (self.qemuMain) {
+            NSLog(@"[GrasaDroid] Entrada QEMU encontrada: %s", symbolNames[i]);
+            break;
+        }
     }
+
     if (!self.qemuMain) {
-        [self failWithError:@"No se encontró qemu_main en la librería"];
+        [self failWithError:[NSString stringWithFormat:
+            @"No se encontró punto de entrada en la librería. Probados: %@. "
+            @"La librería QEMU necesita recompilarse exportando el símbolo main.",
+            tried]];
         return NO;
     }
 

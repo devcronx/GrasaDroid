@@ -234,6 +234,38 @@ if [ -f "$DYLIB_SRC" ]; then
     cp "$DYLIB_SRC" "$LIBDIR/"
     echo "[stage] $LIBDIR/libqemu-aarch64-softmmu.dylib"
     ls -lh "$LIBDIR/libqemu-aarch64-softmmu.dylib"
+
+    # Agregar wrapper qemu_main: compilar e inyectar el símbolo exportado
+    # QEMU con --enable-shared-lib no exporta main(); GrasaDroid lo necesita via dlsym
+    echo "[wrapper] compilando qemu_main_wrapper.c"
+    WRAPPER_SRC="$SCRIPT_DIR/qemu_main_wrapper.c"
+    WRAPPER_OBJ="$LIBDIR/qemu_main_wrapper.o"
+    # Usar el clang del Xcode con el SDK de iOS
+    xcrun -sdk iphoneos clang -arch arm64 \
+        -isysroot "$(xcrun -sdk iphoneos --show-sdk-path)" \
+        -mios-version-min=17.0 \
+        -c "$WRAPPER_SRC" -o "$WRAPPER_OBJ" || {
+        echo "[WARN] no se pudo compilar el wrapper, continuando sin qemu_main"
+    }
+    if [ -f "$WRAPPER_OBJ" ]; then
+        echo "[wrapper] enlazando qemu_main en la dylib"
+        # Crear nueva dylib con el wrapper incluido y símbolo exportado
+        xcrun -sdk iphoneos clang -arch arm64 \
+            -isysroot "$(xcrun -sdk iphoneos --show-sdk-path)" \
+            -mios-version-min=17.0 \
+            -dynamiclib \
+            -o "$LIBDIR/libqemu-aarch64-softmmu.new.dylib" \
+            "$WRAPPER_OBJ" \
+            "$LIBDIR/libqemu-aarch64-softmmu.dylib" \
+            -Wl,-exported_symbol,_qemu_main || {
+            echo "[WARN] no se pudo enlazar el wrapper"
+        }
+        if [ -f "$LIBDIR/libqemu-aarch64-softmmu.new.dylib" ]; then
+            mv "$LIBDIR/libqemu-aarch64-softmmu.new.dylib" "$LIBDIR/libqemu-aarch64-softmmu.dylib"
+            echo "[wrapper] qemu_main inyectado correctamente"
+        fi
+        rm -f "$WRAPPER_OBJ"
+    fi
 else
     echo "[FAIL] dylib not produced"; exit 1
 fi
