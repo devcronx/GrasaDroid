@@ -1,7 +1,7 @@
 import UIKit
 
 /// Pestaña Motor: estado real del JIT (probado en el dispositivo) y del emulador.
-final class MotorViewController: UIViewController {
+final class MotorViewController: UIViewController, QEMUBridgeDelegate {
     private let statusCard = UIView()
     private let statusTitle = UILabel()
     private let statusPill = UILabel()
@@ -153,6 +153,9 @@ final class MotorViewController: UIViewController {
         stack.addArrangedSubview(downloadProgress)
         self.downloadProgressView = downloadProgress
         self.downloadButton = downloadButton
+
+        // Sección de boot de Android
+        setupBootSection(in: stack)
     }
 
     @objc private func didTapDownloadAndroid() {
@@ -176,6 +179,7 @@ final class MotorViewController: UIViewController {
                     config.cornerStyle = .large
                     self?.downloadButton?.configuration = config
                     self?.downloadProgressView?.isHidden = true
+                    self?.bootButton?.isEnabled = true
                 case .failure(let error):
                     var config = UIButton.Configuration.filled()
                     config.title = "Reintentar descarga"
@@ -188,6 +192,109 @@ final class MotorViewController: UIViewController {
                 }
             }
         )
+    }
+
+    // MARK: - Boot Android
+
+    private var bootButton: UIButton?
+    private var logTextView: UITextView?
+    private var displayContainer: UIView?
+
+    private func setupBootSection(in stack: UIStackView) {
+        // Contenedor para el display de QEMU
+        let displayContainer = UIView()
+        displayContainer.translatesAutoresizingMaskIntoConstraints = false
+        displayContainer.backgroundColor = .black
+        displayContainer.layer.cornerRadius = 12
+        displayContainer.layer.masksToBounds = true
+        NSLayoutConstraint.activate([
+            displayContainer.heightAnchor.constraint(equalToConstant: 300)
+        ])
+        stack.addArrangedSubview(displayContainer)
+        self.displayContainer = displayContainer
+
+        // Botón de boot
+        let bootButton = UIButton(configuration: .filled())
+        var config = UIButton.Configuration.filled()
+        config.title = "Iniciar Android"
+        config.image = UIImage(systemName: "play.fill")
+        config.imagePadding = 8
+        config.cornerStyle = .large
+        bootButton.configuration = config
+        bootButton.translatesAutoresizingMaskIntoConstraints = false
+        bootButton.addTarget(self, action: #selector(didTapBootAndroid), for: .touchUpInside)
+        bootButton.isEnabled = AndroidImageManager.shared.isImageInstalled
+        NSLayoutConstraint.activate([bootButton.heightAnchor.constraint(equalToConstant: 52)])
+        stack.addArrangedSubview(bootButton)
+        self.bootButton = bootButton
+
+        // Log de QEMU
+        let logLabel = UILabel()
+        logLabel.translatesAutoresizingMaskIntoConstraints = false
+        logLabel.text = "Log de QEMU"
+        logLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+        logLabel.textColor = .white
+        stack.addArrangedSubview(logLabel)
+
+        let logTextView = UITextView()
+        logTextView.translatesAutoresizingMaskIntoConstraints = false
+        logTextView.backgroundColor = UIColor(white: 0.08, alpha: 1)
+        logTextView.textColor = UIColor(white: 0.85, alpha: 1)
+        logTextView.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+        logTextView.isEditable = false
+        logTextView.layer.cornerRadius = 12
+        logTextView.text = "Esperando boot...\n"
+        NSLayoutConstraint.activate([
+            logTextView.heightAnchor.constraint(equalToConstant: 200)
+        ])
+        stack.addArrangedSubview(logTextView)
+        self.logTextView = logTextView
+
+        // Configurar QEMUBridge como delegate
+        QEMUBridge.shared.delegate = self
+    }
+
+    @objc private func didTapBootAndroid() {
+        guard let displayContainer = displayContainer else { return }
+
+        appendLog("Iniciando QEMU...\n")
+        bootButton?.isEnabled = false
+
+        let args = AndroidImageManager.shared.qemuArguments()
+        appendLog("Argumentos: \(args.joined(separator: " "))\n")
+
+        // QEMUBridge es una clase Objective-C, accesible via bridging header
+        QEMUBridge.shared().start(withArguments: args, displayView: displayContainer)
+        appendLog("QEMU lanzado en hilo separado.\n")
+    }
+
+    private func appendLog(_ text: String) {
+        DispatchQueue.main.async { [weak self] in
+            guard let tv = self?.logTextView else { return }
+            tv.text += text
+            let range = NSRange(location: tv.text.count - 1, length: 1)
+            tv.scrollRangeToVisible(range)
+        }
+    }
+
+    // MARK: - QEMUBridgeDelegate
+
+    func qemuDidChangeState(_ state: QEMUState) {
+        let stateName: String
+        switch state {
+        case .stopped: stateName = "Detenido"
+        case .starting: stateName = "Iniciando"
+        case .running: stateName = "Corriendo"
+        case .paused: stateName = "Pausado"
+        case .error: stateName = "Error"
+        @unknown default: stateName = "Desconocido"
+        }
+        appendLog("Estado QEMU: \(stateName)\n")
+    }
+
+    func qemuDidFail(withError error: String) {
+        appendLog("ERROR: \(error)\n")
+        bootButton?.isEnabled = true
     }
 
     private func sectionCard(title: String, body: String) -> UIView {
