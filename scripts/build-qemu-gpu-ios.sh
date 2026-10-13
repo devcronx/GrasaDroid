@@ -208,8 +208,8 @@ if [ ! -f "$PREFIX/lib/libvirglrenderer.a" ]; then
     mkdir -p "$GPU/virgl"
     tar xzf "$GRASA_ROOT/third_party/patches/virgl-482f9d8b.tar.gz" -C "$GPU/virgl"
     echo "[fix] virgl extraido desde tarball verificado"
-    # Diagnostico definitivo: checksum y contenido en cada etapa
-    ( cd "$GPU/virgl" && echo "[diag] despues de extraer:" && shasum src/vrend/vrend_renderer.c && grep -c "is_angle" src/vrend/vrend_renderer.c && echo "[diag] linea 13026:" && sed -n '13026p' src/vrend/vrend_renderer.c )
+    # Diagnostico definitivo: checksum y contenido
+    ( cd "$GPU/virgl" && echo "[diag] despues de extraer:" && pwd && shasum src/vrend/vrend_renderer.c && echo "[diag] linea 13026:" && sed -n '13026p' src/vrend/vrend_renderer.c )
     # GrasaDroid: el winsys Metal de UTM es macOS-only; en iOS usamos EGL via ANGLE.
     # Sin esto, su meson.build ejecuta add_languages('objc') y compila vrend_metal.m
     # (causa raíz del fallo de GPU #6: meson pedía compilador objc aunque el cross
@@ -229,16 +229,15 @@ PYEOF
     # (2026-10-13: se eliminó un segundo bloque idéntico de este parche que
     #  quedó duplicado por accidente; su `assert n == 1` nunca podía pasar.)
     ( cd "$GPU/virgl"
-      echo "[diag] antes de meson setup:" && shasum src/vrend/vrend_renderer.c && sed -n '13026p' src/vrend/vrend_renderer.c
       rm -rf _grasadroid_build
       meson setup _grasadroid_build --cross-file "$CROSS_DARWIN" \
           --prefix="$PREFIX" --default-library=static \
           -Dtests=false -Dcheck-gl-errors=false -Dvenus=false -Dvulkan-dload=false \
           -Drender-server-mode=thread
-      echo "[diag] despues de meson setup:" && shasum src/vrend/vrend_renderer.c && sed -n '13026p' src/vrend/vrend_renderer.c
-      echo "[diag] buscando otros vrend_renderer.c:" && find / -name "vrend_renderer.c" 2>/dev/null | head -5
       ninja -C _grasadroid_build install ) > "$LOGS/virgl.log" 2>&1 \
       || { echo "[errores de compilación]"; grep -a -B2 -A8 ": error:" "$LOGS/virgl.log" | head -60; fail virglrenderer "$LOGS/virgl.log"; }
+    # Diagnostico: verificar el archivo DESPUES de que falle la compilacion
+    ( cd "$GPU/virgl" && echo "[diag-post] pwd:" && pwd && echo "[diag-post] checksum:" && shasum src/vrend/vrend_renderer.c && echo "[diag-post] lineas 13020-13030:" && sed -n '13020,13030p' src/vrend/vrend_renderer.c )
     echo "    $(ls -lh "$PREFIX/lib/libvirglrenderer.a" | awk '{print $5}')"
 else
     echo "[skip] virglrenderer ya en sysroot"
