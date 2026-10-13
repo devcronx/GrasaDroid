@@ -13019,6 +13019,8 @@ angle_generic:
    caps->v2.renderer[sizeof(caps->v2.renderer) - 1] = '\0';
 
 angle_done:
+   ; /* GrasaDroid: sentencia nula — con c_std=gnu11 un label no puede ir
+      * seguido directamente de una declaración (error de clang) */
 
    /* glamor reject llvmpipe, and since the renderer string is
     * composed of "virgl" and this renderer string we have to

@@ -226,18 +226,8 @@ open(p, "w").write(s2)
 print("[patch] metal_dep -> not_found (winsys Metal desactivado)")
 PYEOF
     )
-    ( cd "$GPU/virgl" && python3 <<'PYEOF'
-import re
-p = "meson.build"
-s = open(p).read()
-s2, n = re.subn(r"(?m)^metal_dep = dependency\('appleframeworks'.*$",
-                "metal_dep = not_found # GrasaDroid: winsys Metal desactivado en iOS (EGL via ANGLE)",
-                s)
-assert n == 1, "linea metal_dep no encontrada en meson.build"
-open(p, "w").write(s2)
-print("[patch] metal_dep -> not_found (winsys Metal desactivado)")
-PYEOF
-    )
+    # (2026-10-13: se eliminó un segundo bloque idéntico de este parche que
+    #  quedó duplicado por accidente; su `assert n == 1` nunca podía pasar.)
     ( cd "$GPU/virgl"
       echo "[diag] antes de meson setup:" && shasum src/vrend/vrend_renderer.c && sed -n '13026p' src/vrend/vrend_renderer.c
       rm -rf _grasadroid_build
