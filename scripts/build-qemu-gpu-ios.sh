@@ -227,6 +227,7 @@ PYEOF
 #   const char *gl_version_str = ...
 #   const char *gl_renderer_str = ...
 #   const bool is_angle = ... (puede ser multi-linea)
+# Ademas, restaurar el label angle_done: si falta.
 p = "src/vrend/vrend_renderer.c"
 lines = open(p).read().split("\n")
 filtered = []
@@ -248,12 +249,19 @@ for l in lines:
             skip_next = 1
         continue
     filtered.append(l)
-# Debug: mostrar contexto alrededor de llvmpipe_string
+# Restaurar label angle_done: si falta antes del comentario glamor
 for i, l in enumerate(filtered):
-    if "llvmpipe_string = strstr" in l:
-        print("[debug] contexto llvmpipe (lineas %d-%d):" % (i-3, i+1))
-        for j in range(max(0, i-3), min(len(filtered), i+2)):
-            print("  %d: %s" % (j+1, filtered[j][:80]))
+    if "glamor reject llvmpipe" in l:
+        # Buscar hacia atras si hay un label angle_done:
+        has_label = False
+        for j in range(max(0, i-5), i):
+            if "angle_done:" in filtered[j]:
+                has_label = True
+                break
+        if not has_label:
+            print("[patch] restaurando label angle_done: antes de linea", i+1)
+            filtered.insert(i, "angle_done:")
+            filtered.insert(i+1, "")
         break
 open(p, "w").write("\n".join(filtered))
 print("[patch] vrend_renderer.c: bloque ANGLE limpiado")
