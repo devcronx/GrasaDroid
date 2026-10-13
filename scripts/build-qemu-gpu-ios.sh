@@ -220,6 +220,21 @@ open(p, "w").write(s2)
 print("[patch] metal_dep -> not_found (winsys Metal desactivado)")
 PYEOF
     )
+    ( cd "$GPU/virgl" && python3 <<'PYEOF'
+# GrasaDroid: eliminar linea is_angle rota (sintaxis invalida con || colgante)
+# que aparece en vrend_renderer.c aunque el commit pinneado no la tiene.
+p = "src/vrend/vrend_renderer.c"
+lines = open(p).read().split("\n")
+filtered = []
+for l in lines:
+    if "const bool is_angle" in l and "||" in l:
+        print("[patch] eliminada linea is_angle rota:", l.strip()[:60])
+        continue
+    filtered.append(l)
+open(p, "w").write("\n".join(filtered))
+print("[patch] vrend_renderer.c: is_angle limpiado")
+PYEOF
+    )
     ( cd "$GPU/virgl"
       echo "[debug] vrend_renderer.c 13020-13030:"
       sed -n '13020,13030p' src/vrend/vrend_renderer.c
