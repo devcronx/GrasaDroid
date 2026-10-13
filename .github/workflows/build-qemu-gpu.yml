@@ -23,7 +23,7 @@ jobs:
       - name: Install host prerequisites
         run: |
           brew install bison pkg-config gettext glib libgpg-error nasm meson ninja || true
-          pip3 install six pyparsing || pip3 install --break-system-packages six pyparsing
+          pip3 install six pyparsing pyyaml || pip3 install --break-system-packages six pyparsing pyyaml
           echo "$(brew --prefix bison)/bin" >> $GITHUB_PATH
 
       - name: Restore sysroot cache
