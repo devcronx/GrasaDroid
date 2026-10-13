@@ -27,6 +27,12 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) CAMetalLayer *metalLayer;
 @property (nonatomic, readonly) id<MTLDevice> metalDevice;
 
+/// Llamado internamente cuando QEMU entrega un nuevo frame via virgl.
+- (void)handleScanoutTexture:(uint32_t)textureId
+                      width:(uint32_t)width
+                     height:(uint32_t)height
+                      y0Top:(bool)y0Top;
+
 @end
 
 NS_ASSUME_NONNULL_END
