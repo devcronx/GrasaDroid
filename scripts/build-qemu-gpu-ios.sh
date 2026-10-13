@@ -227,7 +227,7 @@ PYEOF
           -Dtests=false -Dcheck-gl-errors=false -Dvenus=false -Dvulkan-dload=false \
           -Drender-server-mode=thread
       ninja -C _grasadroid_build install ) > "$LOGS/virgl.log" 2>&1 \
-      || fail virglrenderer "$LOGS/virgl.log"
+      || { echo "[errores de compilación]"; grep -a -B2 -A8 ": error:" "$LOGS/virgl.log" | head -60; fail virglrenderer "$LOGS/virgl.log"; }
     echo "    $(ls -lh "$PREFIX/lib/libvirglrenderer.a" | awk '{print $5}')"
 else
     echo "[skip] virglrenderer ya en sysroot"
