@@ -8,6 +8,8 @@ final class MotorViewController: UIViewController {
     private let statusDetail = UILabel()
     private let testButton = UIButton(configuration: .filled())
     private let spinner = UIActivityIndicatorView(style: .medium)
+    private var downloadProgressView: UIProgressView?
+    private var downloadButton: UIButton?
 
     init() {
         super.init(nibName: nil, bundle: nil)
@@ -124,6 +126,68 @@ final class MotorViewController: UIViewController {
             body: "En construcción. El motor (QEMU + Android) se integra por hitos " +
                 "después de confirmar el JIT: sin JIT no hay emulación a velocidad usable."
         ))
+
+        // Descarga de Android
+        let androidCard = sectionCard(
+            title: "Imagen Android",
+            body: "Cuttlefish AOSP ARM64 (~1.5 GB) con drivers virtio-gpu/virgl integrados. " +
+                "Necesaria para emular Android con aceleración gráfica."
+        )
+        stack.addArrangedSubview(androidCard)
+
+        let downloadButton = UIButton(configuration: .filled())
+        var dlConfig = UIButton.Configuration.filled()
+        dlConfig.title = AndroidImageManager.shared.isImageInstalled ? "Android descargado ✓" : "Descargar Android"
+        dlConfig.image = UIImage(systemName: "arrow.down.circle.fill")
+        dlConfig.imagePadding = 8
+        dlConfig.cornerStyle = .large
+        downloadButton.configuration = dlConfig
+        downloadButton.translatesAutoresizingMaskIntoConstraints = false
+        downloadButton.addTarget(self, action: #selector(didTapDownloadAndroid), for: .touchUpInside)
+        NSLayoutConstraint.activate([downloadButton.heightAnchor.constraint(equalToConstant: 52)])
+        stack.addArrangedSubview(downloadButton)
+
+        let downloadProgress = UIProgressView(progressViewStyle: .default)
+        downloadProgress.translatesAutoresizingMaskIntoConstraints = false
+        downloadProgress.isHidden = true
+        stack.addArrangedSubview(downloadProgress)
+        self.downloadProgressView = downloadProgress
+        self.downloadButton = downloadButton
+    }
+
+    @objc private func didTapDownloadAndroid() {
+        guard !AndroidImageManager.shared.isImageInstalled else { return }
+
+        downloadButton?.isEnabled = false
+        downloadProgressView?.isHidden = false
+        downloadProgressView?.progress = 0
+
+        AndroidImageManager.shared.downloadImage(
+            progress: { [weak self] p in
+                self?.downloadProgressView?.progress = Float(p)
+            },
+            completion: { [weak self] result in
+                switch result {
+                case .success:
+                    var config = UIButton.Configuration.filled()
+                    config.title = "Android descargado ✓"
+                    config.image = UIImage(systemName: "checkmark.circle.fill")
+                    config.imagePadding = 8
+                    config.cornerStyle = .large
+                    self?.downloadButton?.configuration = config
+                    self?.downloadProgressView?.isHidden = true
+                case .failure(let error):
+                    var config = UIButton.Configuration.filled()
+                    config.title = "Reintentar descarga"
+                    config.image = UIImage(systemName: "arrow.down.circle.fill")
+                    config.imagePadding = 8
+                    config.cornerStyle = .large
+                    self?.downloadButton?.configuration = config
+                    self?.downloadButton?.isEnabled = true
+                    print("[GrasaDroid] Error descargando Android: \(error)")
+                }
+            }
+        )
     }
 
     private func sectionCard(title: String, body: String) -> UIView {
