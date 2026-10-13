@@ -204,6 +204,25 @@ if [ ! -f "$PREFIX/lib/libvirglrenderer.a" ]; then
     banner "building virglrenderer for iOS (render server: thread mode)"
     [ -d "$GPU/virgl" ] || git clone -q "$VIRGL_REPO" "$GPU/virgl"
     ( cd "$GPU/virgl" && git checkout -q "$VIRGL_COMMIT" )
+    # GrasaDroid: el winsys Metal de UTM es macOS-only; en iOS usamos EGL via ANGLE.
+    # Sin esto, su meson.build ejecuta add_languages('objc') y compila vrend_metal.m
+    # (causa raíz del fallo de GPU #6: meson pedía compilador objc aunque el cross
+    # file ya lo tenía, y luego intentaba compilar código macOS para iOS).
+    ( cd "$GPU/virgl" && python3 <<'PYEOF'
+import re
+p = "meson.build"
+s = open(p).read()
+s2, n = re.subn(r"(?m)^metal_dep = dependency\('appleframeworks'.*$",
+                "metal_dep = not_found # GrasaDroid: winsys Metal desactivado en iOS (EGL via ANGLE)",
+                s)
+assert n == 1, "linea metal_dep no encontrada en meson.build"
+open(p, "w").write(s2)
+print("[patch] metal_dep -> not_found (winsys Metal desactivado)")
+PYEOF
+    )
+    echo "[debug] virgl @ $(cd "$GPU/virgl" && git rev-parse --short HEAD)"
+    echo "[debug] cross file $CROSS_DARWIN:"
+    cat "$CROSS_DARWIN"
     ( cd "$GPU/virgl"
       rm -rf _grasadroid_build
       meson setup _grasadroid_build --cross-file "$CROSS_DARWIN" \
