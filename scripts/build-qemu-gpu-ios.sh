@@ -202,14 +202,12 @@ fi
 # ---------------------------------------------------------------- virglrenderer
 if [ ! -f "$PREFIX/lib/libvirglrenderer.a" ]; then
     banner "building virglrenderer for iOS (render server: thread mode)"
-    # GrasaDroid: clone fresco de virglrenderer cada vez para evitar
-    # contaminacion del "codigo fantasma" is_angle.
+    # GrasaDroid: usamos tarball verificado en vez de git clone para evitar
+    # el "codigo fantasma" is_angle que aparece en el runner.
     rm -rf "$GPU/virgl"
-    git clone -q "$VIRGL_REPO" "$GPU/virgl"
-    ( cd "$GPU/virgl" && git checkout -q "$VIRGL_COMMIT" )
-    # El archivo vrend_renderer.c aparece con codigo is_angle corrupto en el
-    # runner. Usamos la version verificada del repo.
-    ( cd "$GPU/virgl" && cp "$GRASA_ROOT/third_party/patches/vrend_renderer.c.fixed" src/vrend/vrend_renderer.c && echo "[fix] vrend_renderer.c reemplazado" && wc -l src/vrend/vrend_renderer.c && sed -n '13026p' src/vrend/vrend_renderer.c )
+    mkdir -p "$GPU/virgl"
+    tar xzf "$GRASA_ROOT/third_party/patches/virgl-482f9d8b.tar.gz" -C "$GPU/virgl"
+    echo "[fix] virgl extraido desde tarball verificado"
     # GrasaDroid: el winsys Metal de UTM es macOS-only; en iOS usamos EGL via ANGLE.
     # Sin esto, su meson.build ejecuta add_languages('objc') y compila vrend_metal.m
     # (causa raíz del fallo de GPU #6: meson pedía compilador objc aunque el cross
