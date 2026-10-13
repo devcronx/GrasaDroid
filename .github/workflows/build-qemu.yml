@@ -30,7 +30,7 @@ jobs:
         id: sysroot-cache
         with:
           path: third_party/ios-arm64
-          key: qemu-ios-v10.0.12-utm-deps-v1
+          key: qemu-ios-v10.0.12-utm-deps-v2-qemumain
 
       - name: Build QEMU + deps for iOS
         if: steps.sysroot-cache.outputs.cache-hit != 'true'
