@@ -220,9 +220,6 @@ open(p, "w").write(s2)
 print("[patch] metal_dep -> not_found (winsys Metal desactivado)")
 PYEOF
     )
-    echo "[debug] virgl @ $(cd "$GPU/virgl" && git rev-parse --short HEAD)"
-    echo "[debug] cross file $CROSS_DARWIN:"
-    cat "$CROSS_DARWIN"
     ( cd "$GPU/virgl"
       rm -rf _grasadroid_build
       meson setup _grasadroid_build --cross-file "$CROSS_DARWIN" \
