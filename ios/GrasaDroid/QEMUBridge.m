@@ -119,12 +119,12 @@ static void *qemuThreadEntry(void *arg) {
 }
 
 - (void)startWithArguments:(NSArray<NSString *> *)args
-               displayView:(UIView *)displayView {
+                      view:(UIView *)view {
     if (self.state == QEMUStateRunning || self.state == QEMUStateStarting) {
         return;
     }
 
-    self.displayView = displayView;
+    self.displayView = view;
     self.state = QEMUStateStarting;
 
     if (![self loadQEMULibrary]) {
@@ -132,7 +132,7 @@ static void *qemuThreadEntry(void *arg) {
     }
 
     // Crear el puente de display antes de arrancar QEMU
-    self.displayBridge = [[QEMUDisplay alloc] initWithView:displayView];
+    self.displayBridge = [[QEMUDisplay alloc] initWithView:view];
     if (![self.displayBridge setup]) {
         [self failWithError:@"No se pudo inicializar el display"];
         return;

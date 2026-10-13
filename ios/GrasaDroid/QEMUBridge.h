@@ -30,9 +30,9 @@ typedef NS_ENUM(NSInteger, QEMUState) {
 
 /// Inicia QEMU con los parámetros dados.
 /// @param args Argumentos de línea de comandos (sin el nombre del programa).
-/// @param displayView Vista donde se renderizará la salida.
+/// @param view Vista donde se renderizará la salida.
 - (void)startWithArguments:(NSArray<NSString *> *)args
-               displayView:(UIView *)displayView;
+                      view:(UIView *)view;
 
 /// Detiene QEMU.
 - (void)stop;

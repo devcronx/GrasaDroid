@@ -251,7 +251,7 @@ final class MotorViewController: UIViewController, QEMUBridgeDelegate {
         self.logTextView = logTextView
 
         // Configurar QEMUBridge como delegate
-        QEMUBridge.shared.delegate = self
+        QEMUBridge.shared().delegate = self
     }
 
     @objc private func didTapBootAndroid() {
@@ -264,7 +264,7 @@ final class MotorViewController: UIViewController, QEMUBridgeDelegate {
         appendLog("Argumentos: \(args.joined(separator: " "))\n")
 
         // QEMUBridge es una clase Objective-C, accesible via bridging header
-        QEMUBridge.shared().start(withArguments: args, displayView: displayContainer)
+        QEMUBridge.shared().start(withArguments: args, view: displayContainer)
         appendLog("QEMU lanzado en hilo separado.\n")
     }
 
@@ -292,7 +292,7 @@ final class MotorViewController: UIViewController, QEMUBridgeDelegate {
         appendLog("Estado QEMU: \(stateName)\n")
     }
 
-    func qemuDidFail(withError error: String) {
+    func qemuDidFailWithError(_ error: String) {
         appendLog("ERROR: \(error)\n")
         bootButton?.isEnabled = true
     }
