@@ -203,7 +203,7 @@ fi
 if [ ! -f "$PREFIX/lib/libvirglrenderer.a" ]; then
     banner "building virglrenderer for iOS (render server: thread mode)"
     [ -d "$GPU/virgl" ] || git clone -q "$VIRGL_REPO" "$GPU/virgl"
-    ( cd "$GPU/virgl" && git checkout -q "$VIRGL_COMMIT" )
+    ( cd "$GPU/virgl" && git fetch -q origin && git reset -q --hard "$VIRGL_COMMIT" )
     # GrasaDroid: el winsys Metal de UTM es macOS-only; en iOS usamos EGL via ANGLE.
     # Sin esto, su meson.build ejecuta add_languages('objc') y compila vrend_metal.m
     # (causa raíz del fallo de GPU #6: meson pedía compilador objc aunque el cross
