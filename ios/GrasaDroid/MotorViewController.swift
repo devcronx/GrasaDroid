@@ -222,10 +222,14 @@ final class MotorViewController: UIViewController, QEMUBridgeDelegate, UIDocumen
     }
 
     @objc private func didTapImportPairing() {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.data])
+        // Usar .item para máxima compatibilidad con cualquier tipo de archivo
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.item])
         picker.delegate = self
         picker.allowsMultipleSelection = false
-        present(picker, animated: true)
+        picker.modalPresentationStyle = .formSheet
+        present(picker, animated: true) {
+            print("[GrasaDroid] Document picker presentado")
+        }
     }
 
     @objc private func didTapDownloadAndroid() {
@@ -234,10 +238,14 @@ final class MotorViewController: UIViewController, QEMUBridgeDelegate, UIDocumen
         downloadButton?.isEnabled = false
         downloadProgressView?.isHidden = false
         downloadProgressView?.progress = 0
+        appendLog("Iniciando descarga de Android (~945 MB)...\n")
 
         AndroidImageManager.shared.downloadImage(
             progress: { [weak self] p in
                 self?.downloadProgressView?.progress = Float(p)
+                if Int(p * 100) % 10 == 0 {
+                    self?.appendLog("Descarga: \(Int(p * 100))%\n")
+                }
             },
             completion: { [weak self] result in
                 switch result {
@@ -250,6 +258,7 @@ final class MotorViewController: UIViewController, QEMUBridgeDelegate, UIDocumen
                     self?.downloadButton?.configuration = config
                     self?.downloadProgressView?.isHidden = true
                     self?.bootButton?.isEnabled = true
+                    self?.appendLog("Descarga completada ✓\n")
                 case .failure(let error):
                     var config = UIButton.Configuration.filled()
                     config.title = "Reintentar descarga"
@@ -258,7 +267,15 @@ final class MotorViewController: UIViewController, QEMUBridgeDelegate, UIDocumen
                     config.cornerStyle = .large
                     self?.downloadButton?.configuration = config
                     self?.downloadButton?.isEnabled = true
-                    print("[GrasaDroid] Error descargando Android: \(error)")
+                    self?.appendLog("ERROR descarga: \(error.localizedDescription)\n")
+                    // Mostrar alerta visible con el error
+                    let alert = UIAlertController(
+                        title: "Error de descarga",
+                        message: error.localizedDescription,
+                        preferredStyle: .alert
+                    )
+                    alert.addAction(UIAlertAction(title: "OK", style: .default))
+                    self?.present(alert, animated: true)
                 }
             }
         )
