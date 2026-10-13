@@ -279,7 +279,7 @@ final class MotorViewController: UIViewController, QEMUBridgeDelegate {
 
     // MARK: - QEMUBridgeDelegate
 
-    func qemuDidChangeState(_ state: QEMUState) {
+    func qemuDidChange(_ state: QEMUState) {
         let stateName: String
         switch state {
         case .stopped: stateName = "Detenido"
