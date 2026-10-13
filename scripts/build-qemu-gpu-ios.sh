@@ -204,6 +204,10 @@ if [ ! -f "$PREFIX/lib/libvirglrenderer.a" ]; then
     banner "building virglrenderer for iOS (render server: thread mode)"
     [ -d "$GPU/virgl" ] || git clone -q "$VIRGL_REPO" "$GPU/virgl"
     ( cd "$GPU/virgl" && git fetch -q origin && git reset -q --hard "$VIRGL_COMMIT" )
+    # GrasaDroid: restaurar vrend_renderer.c a estado pristino del commit.
+    # El archivo aparece con un bloque ANGLE corrupto en el runner que no existe
+    # en el commit; en vez de parchear, lo restauramos directamente.
+    ( cd "$GPU/virgl" && git checkout -q "$VIRGL_COMMIT" -- src/vrend/vrend_renderer.c && echo "[fix] vrend_renderer.c restaurado a $VIRGL_COMMIT" )
     # GrasaDroid: el winsys Metal de UTM es macOS-only; en iOS usamos EGL via ANGLE.
     # Sin esto, su meson.build ejecuta add_languages('objc') y compila vrend_metal.m
     # (causa raíz del fallo de GPU #6: meson pedía compilador objc aunque el cross
@@ -221,50 +225,15 @@ print("[patch] metal_dep -> not_found (winsys Metal desactivado)")
 PYEOF
     )
     ( cd "$GPU/virgl" && python3 <<'PYEOF'
-# GrasaDroid: eliminar bloque ANGLE insertado (roto). El commit pinneado
-# no tiene este codigo; aparece corrupto en el runner.
-# Bloque a eliminar:
-#   const char *gl_version_str = ...
-#   const char *gl_renderer_str = ...
-#   const bool is_angle = ... (puede ser multi-linea)
-# Ademas, restaurar el label angle_done: si falta.
-p = "src/vrend/vrend_renderer.c"
-lines = open(p).read().split("\n")
-filtered = []
-skip_next = 0
-for l in lines:
-    if skip_next > 0:
-        print("[patch] eliminada continuacion:", l.strip()[:60])
-        skip_next -= 1
-        continue
-    if "const char *gl_version_str" in l and "glGetString" in l:
-        print("[patch] eliminada:", l.strip()[:60])
-        continue
-    if "const char *gl_renderer_str" in l and "glGetString" in l:
-        print("[patch] eliminada:", l.strip()[:60])
-        continue
-    if "const bool is_angle" in l:
-        print("[patch] eliminada linea is_angle:", l.strip()[:60])
-        if l.rstrip().endswith("||"):
-            skip_next = 1
-        continue
-    filtered.append(l)
-# Restaurar label angle_done: si falta antes del comentario glamor
-for i, l in enumerate(filtered):
-    if "glamor reject llvmpipe" in l:
-        # Buscar hacia atras si hay un label angle_done:
-        has_label = False
-        for j in range(max(0, i-5), i):
-            if "angle_done:" in filtered[j]:
-                has_label = True
-                break
-        if not has_label:
-            print("[patch] restaurando label angle_done: antes de linea", i+1)
-            filtered.insert(i, "angle_done:")
-            filtered.insert(i+1, "")
-        break
-open(p, "w").write("\n".join(filtered))
-print("[patch] vrend_renderer.c: bloque ANGLE limpiado")
+import re
+p = "meson.build"
+s = open(p).read()
+s2, n = re.subn(r"(?m)^metal_dep = dependency\('appleframeworks'.*$",
+                "metal_dep = not_found # GrasaDroid: winsys Metal desactivado en iOS (EGL via ANGLE)",
+                s)
+assert n == 1, "linea metal_dep no encontrada en meson.build"
+open(p, "w").write(s2)
+print("[patch] metal_dep -> not_found (winsys Metal desactivado)")
 PYEOF
     )
     ( cd "$GPU/virgl"
