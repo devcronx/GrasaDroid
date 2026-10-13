@@ -6,12 +6,20 @@
 //
 
 #import "JITEnabler.h"
-#import <sys/ptrace.h>
 #import <sys/wait.h>
 #import <unistd.h>
 #import <signal.h>
 #import <sys/mman.h>
 #import <pthread.h>
+#import <errno.h>
+#import <string.h>
+
+// ptrace no está en el SDK de iOS, declarar manualmente
+#define PT_TRACE_ME 0
+#define PT_ATTACH 10
+#define PT_CONTINUE 7
+#define PT_DETACH 11
+int ptrace(int request, pid_t pid, caddr_t addr, int data);
 
 // Sin MAP_JIT en algunos SDKs, definirlo
 #ifndef MAP_JIT
