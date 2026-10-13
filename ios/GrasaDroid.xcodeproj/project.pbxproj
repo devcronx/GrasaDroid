@@ -18,8 +18,8 @@
 		AAAAAAAAAAAAAAAAAAAAAA9A /* MotorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99999999999999999999999C /* MotorViewController.swift */; };
 		EEEEEEEEEEEEEEEEEEEEEEA1 /* QEMUBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE91 /* QEMUBridge.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		EEEEEEEEEEEEEEEEEEEEEEA2 /* QEMUDisplay.m in Sources */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE93 /* QEMUDisplay.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
-		EEEEEEEEEEEEEEEEEEEEEEA3 /* libqemu-aarch64-softmmu.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE95 /* libqemu-aarch64-softmmu.dylib */; };
-		EEEEEEEEEEEEEEEEEEEEEEA4 /* libANGLE-shared.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE96 /* libANGLE-shared.dylib */; };
+		EEEEEEEEEEEEEEEEEEEEEEA3 /* libqemu-aarch64-softmmu.dylib in Copy dylibs */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE95 /* libqemu-aarch64-softmmu.dylib */; };
+		EEEEEEEEEEEEEEEEEEEEEEA4 /* libANGLE-shared.dylib in Copy dylibs */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE96 /* libANGLE-shared.dylib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,11 +48,23 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EEEEEEEEEEEEEEEEEEEEEEA3 /* libqemu-aarch64-softmmu.dylib in Frameworks */,
-				EEEEEEEEEEEEEEEEEEEEEEA4 /* libANGLE-shared.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+/* Begin PBXCopyFilesBuildPhase section */
+		EEEEEEEEEEEEEEEEEEEEEEB0 /* Copy dylibs */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				EEEEEEEEEEEEEEEEEEEEEEA3 /* libqemu-aarch64-softmmu.dylib in Frameworks */,
+				EEEEEEEEEEEEEEEEEEEEEEA4 /* libANGLE-shared.dylib in Frameworks */,
+			);
+			name = "Copy dylibs";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -104,6 +116,7 @@
 				333333333333333333333333 /* Sources */,
 				444444444444444444444444 /* Frameworks */,
 				555555555555555555555555 /* Resources */,
+				EEEEEEEEEEEEEEEEEEEEEEB0 /* Copy dylibs */,
 			);
 			buildRules = (
 			);
