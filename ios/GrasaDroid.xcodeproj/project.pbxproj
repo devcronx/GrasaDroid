@@ -16,8 +16,8 @@
 		AAAAAAAAAAAAAAAAAAAAAA98 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99999999999999999999999A /* SettingsViewController.swift */; };
 		AAAAAAAAAAAAAAAAAAAAAA99 /* JITProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99999999999999999999999B /* JITProbe.swift */; };
 		AAAAAAAAAAAAAAAAAAAAAA9A /* MotorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99999999999999999999999C /* MotorViewController.swift */; };
-		EEEEEEEEEEEEEEEEEEEEEEA1 /* QEMUBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE91 /* QEMUBridge.m */; };
-		EEEEEEEEEEEEEEEEEEEEEEA2 /* QEMUDisplay.m in Sources */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE93 /* QEMUDisplay.m */; };
+		EEEEEEEEEEEEEEEEEEEEEEA1 /* QEMUBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE91 /* QEMUBridge.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
+		EEEEEEEEEEEEEEEEEEEEEEA2 /* QEMUDisplay.m in Sources */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE93 /* QEMUDisplay.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		EEEEEEEEEEEEEEEEEEEEEEA3 /* libqemu-aarch64-softmmu.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE95 /* libqemu-aarch64-softmmu.dylib */; };
 		EEEEEEEEEEEEEEEEEEEEEEA4 /* libANGLE-shared.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE96 /* libANGLE-shared.dylib */; };
 /* End PBXBuildFile section */
