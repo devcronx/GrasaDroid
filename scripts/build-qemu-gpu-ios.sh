@@ -207,9 +207,11 @@ if [ ! -f "$PREFIX/lib/libvirglrenderer.a" ]; then
     rm -rf "$GPU/virgl"
     git clone -q "$VIRGL_REPO" "$GPU/virgl"
     ( cd "$GPU/virgl" && git checkout -q "$VIRGL_COMMIT" )
-    ( cd "$GPU/virgl" && git log -1 --format="%H" | grep -q "^$VIRGL_COMMIT" && echo "[fix] virgl en commit correcto: $VIRGL_COMMIT" || echo "[WARN] virgl NO esta en el commit pinneado" )
-    # Verificar que vrend_renderer.c NO tiene is_angle
-    ( cd "$GPU/virgl" && grep -q "is_angle" src/vrend/vrend_renderer.c && echo "[WARN] is_angle presente despues de clone fresco!" || echo "[fix] vrend_renderer.c limpio, sin is_angle" )
+    # El archivo vrend_renderer.c aparece con codigo is_angle corrupto en el
+    # runner aunque el commit no lo tiene. Lo descargamos directo desde GitHub
+    # para garantizar la version pristina.
+    ( cd "$GPU/virgl" && curl -sSL "https://raw.githubusercontent.com/utmapp/virglrenderer/$VIRGL_COMMIT/src/vrend/vrend_renderer.c" -o src/vrend/vrend_renderer.c && echo "[fix] vrend_renderer.c descargado desde GitHub raw" )
+    ( cd "$GPU/virgl" && grep -q "is_angle" src/vrend/vrend_renderer.c && echo "[WARN] is_angle presente despues de descarga!" || echo "[fix] vrend_renderer.c limpio, sin is_angle" )
     # GrasaDroid: el winsys Metal de UTM es macOS-only; en iOS usamos EGL via ANGLE.
     # Sin esto, su meson.build ejecuta add_languages('objc') y compila vrend_metal.m
     # (causa raíz del fallo de GPU #6: meson pedía compilador objc aunque el cross
