@@ -42,9 +42,12 @@ static QEMUBridge *gShared = nil;
 
 - (void)setState:(QEMUState)state {
     _state = state;
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [self.delegate qemuDidChangeState:state];
-    });
+    id<QEMUBridgeDelegate> delegate = self.delegate;
+    if (delegate && [delegate respondsToSelector:@selector(qemuDidChangeState:)]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [delegate qemuDidChangeState:state];
+        });
+    }
 }
 
 - (BOOL)loadQEMULibrary {
@@ -174,9 +177,14 @@ static void *qemuThreadEntry(void *arg) {
 
 - (void)failWithError:(NSString *)error {
     self.state = QEMUStateError;
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [self.delegate qemuDidFailWithError:error];
-    });
+    id<QEMUBridgeDelegate> delegate = self.delegate;
+    if (delegate && [delegate respondsToSelector:@selector(qemuDidFailWithError:)]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [delegate qemuDidFailWithError:error];
+        });
+    } else {
+        NSLog(@"[GrasaDroid] QEMU error (sin delegate): %@", error);
+    }
 }
 
 @end
