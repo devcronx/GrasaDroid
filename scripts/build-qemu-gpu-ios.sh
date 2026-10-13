@@ -221,6 +221,8 @@ print("[patch] metal_dep -> not_found (winsys Metal desactivado)")
 PYEOF
     )
     ( cd "$GPU/virgl"
+      echo "[debug] vrend_renderer.c 13020-13030:"
+      sed -n '13020,13030p' src/vrend/vrend_renderer.c
       rm -rf _grasadroid_build
       meson setup _grasadroid_build --cross-file "$CROSS_DARWIN" \
           --prefix="$PREFIX" --default-library=static \
