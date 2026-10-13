@@ -18,6 +18,7 @@
 		AAAAAAAAAAAAAAAAAAAAAA9A /* MotorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99999999999999999999999C /* MotorViewController.swift */; };
 		EEEEEEEEEEEEEEEEEEEEEEA1 /* QEMUBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE91 /* QEMUBridge.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
 		EEEEEEEEEEEEEEEEEEEEEEA2 /* QEMUDisplay.m in Sources */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE93 /* QEMUDisplay.m */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
+		CCCCCCCCCCCCCCCCCCCCCC9B /* JITManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBBBBBBBBBBBBBBBBBBBB1D /* JITManager.swift */; };
 		AAAAAAAAAAAAAAAAAAAAAA9B /* AndroidImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99999999999999999999999D /* AndroidImageManager.swift */; };
 		EEEEEEEEEEEEEEEEEEEEEEA3 /* libqemu-aarch64-softmmu.dylib in Copy dylibs */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE95 /* libqemu-aarch64-softmmu.dylib */; };
 		EEEEEEEEEEEEEEEEEEEEEEA4 /* libANGLE-shared.dylib in Copy dylibs */ = {isa = PBXBuildFile; fileRef = EEEEEEEEEEEEEEEEEEEEEE96 /* libANGLE-shared.dylib */; };
@@ -42,6 +43,7 @@
 		EEEEEEEEEEEEEEEEEEEEEE95 /* libqemu-aarch64-softmmu.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = "Frameworks/libqemu-aarch64-softmmu.dylib"; sourceTree = "<group>"; };
 		EEEEEEEEEEEEEEEEEEEEEE96 /* libANGLE-shared.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = "Frameworks/libANGLE-shared.dylib"; sourceTree = "<group>"; };
 		EEEEEEEEEEEEEEEEEEEEEE97 /* GrasaDroid-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "GrasaDroid-Bridging-Header.h"; sourceTree = "<group>"; };
+		BBBBBBBBBBBBBBBBBBBBBB1D /* JITManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JITManager.swift; sourceTree = "<group>"; };
 		99999999999999999999999D /* AndroidImageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AndroidImageManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -98,6 +100,7 @@
 				EEEEEEEEEEEEEEEEEEEEEE97 /* GrasaDroid-Bridging-Header.h */,
 				EEEEEEEEEEEEEEEEEEEEEE95 /* libqemu-aarch64-softmmu.dylib */,
 				EEEEEEEEEEEEEEEEEEEEEE96 /* libANGLE-shared.dylib */,
+				BBBBBBBBBBBBBBBBBBBBBB1D /* JITManager.swift */,
 				99999999999999999999999D /* AndroidImageManager.swift */,
 			);
 			path = GrasaDroid;
@@ -184,6 +187,7 @@
 				AAAAAAAAAAAAAAAAAAAAAA9A /* MotorViewController.swift in Sources */,
 				EEEEEEEEEEEEEEEEEEEEEEA1 /* QEMUBridge.m in Sources */,
 				EEEEEEEEEEEEEEEEEEEEEEA2 /* QEMUDisplay.m in Sources */,
+				CCCCCCCCCCCCCCCCCCCCCC9B /* JITManager.swift in Sources */,
 				AAAAAAAAAAAAAAAAAAAAAA9B /* AndroidImageManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

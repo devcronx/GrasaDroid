@@ -1,7 +1,7 @@
 import UIKit
 
 /// Pestaña Motor: estado real del JIT (probado en el dispositivo) y del emulador.
-final class MotorViewController: UIViewController, QEMUBridgeDelegate {
+final class MotorViewController: UIViewController, QEMUBridgeDelegate, UIDocumentPickerDelegate {
     private let statusCard = UIView()
     private let statusTitle = UILabel()
     private let statusPill = UILabel()
@@ -156,6 +156,74 @@ final class MotorViewController: UIViewController, QEMUBridgeDelegate {
 
         // Sección de boot de Android
         setupBootSection(in: stack)
+
+        // Sección de JIT
+        setupJITSection(in: stack)
+    }
+
+    // MARK: - JIT
+
+    private var jitStatusLabel: UILabel?
+    private var pairingButton: UIButton?
+
+    private func setupJITSection(in stack: UIStackView) {
+        let jitCard = sectionCard(
+            title: "JIT (StikDebug)",
+            body: JITManager.stikDebugInstructions
+        )
+        stack.addArrangedSubview(jitCard)
+
+        let statusLabel = UILabel()
+        statusLabel.translatesAutoresizingMaskIntoConstraints = false
+        statusLabel.font = .systemFont(ofSize: 15, weight: .medium)
+        statusLabel.textColor = .white
+        stack.addArrangedSubview(statusLabel)
+        self.jitStatusLabel = statusLabel
+        updateJITStatus()
+
+        let pairingButton = UIButton(configuration: .filled())
+        var config = UIButton.Configuration.filled()
+        config.title = JITManager.shared.hasPairingFile ? "Pairing file ✓" : "Importar pairing file"
+        config.image = UIImage(systemName: "doc.fill")
+        config.imagePadding = 8
+        config.cornerStyle = .large
+        pairingButton.configuration = config
+        pairingButton.translatesAutoresizingMaskIntoConstraints = false
+        pairingButton.addTarget(self, action: #selector(didTapImportPairing), for: .touchUpInside)
+        NSLayoutConstraint.activate([pairingButton.heightAnchor.constraint(equalToConstant: 52)])
+        stack.addArrangedSubview(pairingButton)
+        self.pairingButton = pairingButton
+
+        let checkButton = UIButton(configuration: .tinted())
+        var checkConfig = UIButton.Configuration.tinted()
+        checkConfig.title = "Verificar JIT"
+        checkConfig.image = UIImage(systemName: "checkmark.shield.fill")
+        checkConfig.imagePadding = 8
+        checkConfig.cornerStyle = .large
+        checkButton.configuration = checkConfig
+        checkButton.translatesAutoresizingMaskIntoConstraints = false
+        checkButton.addTarget(self, action: #selector(didTapCheckJIT), for: .touchUpInside)
+        NSLayoutConstraint.activate([checkButton.heightAnchor.constraint(equalToConstant: 44)])
+        stack.addArrangedSubview(checkButton)
+    }
+
+    private func updateJITStatus() {
+        let available = JITManager.shared.isJITAvailable
+        jitStatusLabel?.text = available ? "✓ JIT ACTIVO" : "✗ JIT no disponible"
+        jitStatusLabel?.textColor = available ? .systemGreen : .systemRed
+    }
+
+    @objc private func didTapCheckJIT() {
+        updateJITStatus()
+        let available = JITManager.shared.isJITAvailable
+        appendLog(available ? "JIT verificado: ACTIVO\n" : "JIT verificado: NO disponible (usa StikDebug)\n")
+    }
+
+    @objc private func didTapImportPairing() {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.data])
+        picker.delegate = self
+        picker.allowsMultipleSelection = false
+        present(picker, animated: true)
     }
 
     @objc private func didTapDownloadAndroid() {
@@ -295,6 +363,34 @@ final class MotorViewController: UIViewController, QEMUBridgeDelegate {
     func qemuDidFailWithError(_ error: String) {
         appendLog("ERROR: \(error)\n")
         bootButton?.isEnabled = true
+    }
+
+    // MARK: - UIDocumentPickerDelegate
+
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let url = urls.first else { return }
+
+        do {
+            // Acceder al archivo (security-scoped)
+            guard url.startAccessingSecurityScopedResource() else {
+                appendLog("No se pudo acceder al pairing file\n")
+                return
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+
+            try JITManager.shared.savePairingFile(from: url)
+
+            var config = UIButton.Configuration.filled()
+            config.title = "Pairing file ✓"
+            config.image = UIImage(systemName: "doc.fill")
+            config.imagePadding = 8
+            config.cornerStyle = .large
+            pairingButton?.configuration = config
+
+            appendLog("Pairing file importado ✓\n")
+        } catch {
+            appendLog("Error importando pairing file: \(error)\n")
+        }
     }
 
     private func sectionCard(title: String, body: String) -> UIView {

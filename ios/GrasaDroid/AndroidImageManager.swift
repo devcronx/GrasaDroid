@@ -27,12 +27,16 @@ final class AndroidImageManager {
         name: "AOSP Cuttlefish ARM64",
         version: "aosp_cf_arm64_phone-userdebug",
         downloadURL: URL(string: "https://ci.android.com/builds/submitted/9970479/aosp_cf_arm64_phone-userdebug/latest/aosp_cf_arm64_phone-img-9970479.zip")!,
-        sizeBytes: 1_600_000_000, // ~1.5 GB
+        sizeBytes: 945_469_328, // Tamaño real verificado 2026-10-13
         sha256: nil, // Se verifica contra el build de AOSP CI
         hasVirglDrivers: true
     )
 
     private init() {}
+
+    /// Sesión de descarga activa (se retiene para que no se cancele)
+    private var activeSession: URLSession?
+    private var activeDelegate: DownloadDelegate?
 
     /// Directorio donde se guardan las imágenes descargadas
     var imagesDirectory: URL {
@@ -64,7 +68,7 @@ final class AndroidImageManager {
         let info = Self.cuttlefishARM64
         let destURL = imagesDirectory.appendingPathComponent("aosp_cf_arm64_phone-img.zip")
 
-        // Si ya existe, verificar tamaño
+        // Si ya existe con el tamaño correcto, no descargar de nuevo
         if let attrs = try? FileManager.default.attributesOfItem(atPath: destURL.path),
            let size = attrs[.size] as? Int64, size == info.sizeBytes {
             progress(1.0)
@@ -72,13 +76,28 @@ final class AndroidImageManager {
             return
         }
 
+        // Limpiar descarga parcial anterior
+        try? FileManager.default.removeItem(at: destURL)
+
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 60
-        let session = URLSession(configuration: config, delegate: DownloadDelegate(
+        config.timeoutIntervalForResource = 3600 // 1 hora para 945 MB
+
+        let delegate = DownloadDelegate(
             progress: progress,
-            completion: completion,
+            completion: { [weak self] result in
+                self?.activeSession = nil
+                self?.activeDelegate = nil
+                completion(result)
+            },
             destinationURL: destURL
-        ), delegateQueue: nil)
+        )
+
+        let session = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
+
+        // Retener sesión y delegate para que la descarga no se cancele
+        self.activeSession = session
+        self.activeDelegate = delegate
 
         let task = session.downloadTask(with: info.downloadURL)
         task.resume()
