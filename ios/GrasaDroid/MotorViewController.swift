@@ -168,8 +168,10 @@ final class MotorViewController: UIViewController, QEMUBridgeDelegate, UIDocumen
 
     private func setupJITSection(in stack: UIStackView) {
         let jitCard = sectionCard(
-            title: "JIT (StikDebug)",
-            body: JITManager.stikDebugInstructions
+            title: "JIT Automático",
+            body: "GrasaDroid intenta activar JIT automáticamente al abrir " +
+                "mediante self-debugging (sin StikDebug). Si no funciona en tu " +
+                "iOS, usa StikDebug como respaldo."
         )
         stack.addArrangedSubview(jitCard)
 

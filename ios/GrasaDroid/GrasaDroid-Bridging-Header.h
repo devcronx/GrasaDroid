@@ -3,3 +3,4 @@
 
 #import "QEMUBridge.h"
 #import "QEMUDisplay.h"
+#import "JITEnabler.h"

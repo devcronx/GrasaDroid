@@ -7,11 +7,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        // M2+: init del motor QEMU (TCG + JIT) aquí.
-        // El JIT en iOS stock solo lo habilita un depurador (StikDebug +
-        // pairing file); la app debe estar compilada para usar el motor JIT
-        // de TCG y StikDebug lo activa en runtime. Sin StikDebug, TCG cae a
-        // intérprete (lento pero funcional para pruebas).
+        // Auto-JIT via self-debugging: la app se adjunta su propio debugger
+        // para habilitar MAP_JIT sin necesidad de StikDebug externo.
+        // Esto debe correr ANTES de que QEMU intente usar TCG/JIT.
+        DispatchQueue.global(qos: .userInitiated).async {
+            let ok = JITEnabler.enableJIT()
+            print("[GrasaDroid] Auto-JIT: \(ok ? "ACTIVO" : "no disponible")")
+        }
         return true
     }
 
