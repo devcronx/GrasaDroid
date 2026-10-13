@@ -248,13 +248,20 @@ for l in lines:
             skip_next = 1
         continue
     filtered.append(l)
+# Debug: mostrar contexto alrededor de llvmpipe_string
+for i, l in enumerate(filtered):
+    if "llvmpipe_string = strstr" in l:
+        print("[debug] contexto llvmpipe (lineas %d-%d):" % (i-3, i+1))
+        for j in range(max(0, i-3), min(len(filtered), i+2)):
+            print("  %d: %s" % (j+1, filtered[j][:80]))
+        break
 open(p, "w").write("\n".join(filtered))
 print("[patch] vrend_renderer.c: bloque ANGLE limpiado")
 PYEOF
     )
     ( cd "$GPU/virgl"
-      echo "[debug] vrend_renderer.c 13020-13030:"
-      sed -n '13020,13030p' src/vrend/vrend_renderer.c
+      echo "[debug] vrend_renderer.c 13010-13025:"
+      sed -n '13010,13025p' src/vrend/vrend_renderer.c
       rm -rf _grasadroid_build
       meson setup _grasadroid_build --cross-file "$CROSS_DARWIN" \
           --prefix="$PREFIX" --default-library=static \
