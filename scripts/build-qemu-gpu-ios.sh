@@ -202,12 +202,14 @@ fi
 # ---------------------------------------------------------------- virglrenderer
 if [ ! -f "$PREFIX/lib/libvirglrenderer.a" ]; then
     banner "building virglrenderer for iOS (render server: thread mode)"
-    [ -d "$GPU/virgl" ] || git clone -q "$VIRGL_REPO" "$GPU/virgl"
-    ( cd "$GPU/virgl" && git fetch -q origin && git reset -q --hard "$VIRGL_COMMIT" )
-    # GrasaDroid: restaurar vrend_renderer.c a estado pristino del commit.
-    # El archivo aparece con un bloque ANGLE corrupto en el runner que no existe
-    # en el commit; en vez de parchear, lo restauramos directamente.
-    ( cd "$GPU/virgl" && git checkout -q "$VIRGL_COMMIT" -- src/vrend/vrend_renderer.c && echo "[fix] vrend_renderer.c restaurado a $VIRGL_COMMIT" )
+    # GrasaDroid: clone fresco de virglrenderer cada vez para evitar
+    # contaminacion del "codigo fantasma" is_angle.
+    rm -rf "$GPU/virgl"
+    git clone -q "$VIRGL_REPO" "$GPU/virgl"
+    ( cd "$GPU/virgl" && git checkout -q "$VIRGL_COMMIT" )
+    ( cd "$GPU/virgl" && git log -1 --format="%H" | grep -q "^$VIRGL_COMMIT" && echo "[fix] virgl en commit correcto: $VIRGL_COMMIT" || echo "[WARN] virgl NO esta en el commit pinneado" )
+    # Verificar que vrend_renderer.c NO tiene is_angle
+    ( cd "$GPU/virgl" && grep -q "is_angle" src/vrend/vrend_renderer.c && echo "[WARN] is_angle presente despues de clone fresco!" || echo "[fix] vrend_renderer.c limpio, sin is_angle" )
     # GrasaDroid: el winsys Metal de UTM es macOS-only; en iOS usamos EGL via ANGLE.
     # Sin esto, su meson.build ejecuta add_languages('objc') y compila vrend_metal.m
     # (causa raíz del fallo de GPU #6: meson pedía compilador objc aunque el cross
