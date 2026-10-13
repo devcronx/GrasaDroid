@@ -221,26 +221,35 @@ print("[patch] metal_dep -> not_found (winsys Metal desactivado)")
 PYEOF
     )
     ( cd "$GPU/virgl" && python3 <<'PYEOF'
-# GrasaDroid: eliminar declaracion is_angle rota (puede ser multi-linea).
-# El commit pinneado no tiene este codigo; aparece roto en el runner.
+# GrasaDroid: eliminar bloque ANGLE insertado (roto). El commit pinneado
+# no tiene este codigo; aparece corrupto en el runner.
+# Bloque a eliminar:
+#   const char *gl_version_str = ...
+#   const char *gl_renderer_str = ...
+#   const bool is_angle = ... (puede ser multi-linea)
 p = "src/vrend/vrend_renderer.c"
 lines = open(p).read().split("\n")
 filtered = []
 skip_next = 0
-for i, l in enumerate(lines):
+for l in lines:
     if skip_next > 0:
-        print("[patch] eliminada continuacion is_angle:", l.strip()[:60])
+        print("[patch] eliminada continuacion:", l.strip()[:60])
         skip_next -= 1
         continue
+    if "const char *gl_version_str" in l and "glGetString" in l:
+        print("[patch] eliminada:", l.strip()[:60])
+        continue
+    if "const char *gl_renderer_str" in l and "glGetString" in l:
+        print("[patch] eliminada:", l.strip()[:60])
+        continue
     if "const bool is_angle" in l:
-        print("[patch] eliminada linea is_angle rota:", l.strip()[:60])
-        # Si la linea termina con ||, la siguiente es continuacion
+        print("[patch] eliminada linea is_angle:", l.strip()[:60])
         if l.rstrip().endswith("||"):
             skip_next = 1
         continue
     filtered.append(l)
 open(p, "w").write("\n".join(filtered))
-print("[patch] vrend_renderer.c: is_angle limpiado")
+print("[patch] vrend_renderer.c: bloque ANGLE limpiado")
 PYEOF
     )
     ( cd "$GPU/virgl"
