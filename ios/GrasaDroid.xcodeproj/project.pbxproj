@@ -94,6 +94,8 @@
 				EEEEEEEEEEEEEEEEEEEEEE92 /* QEMUDisplay.h */,
 				EEEEEEEEEEEEEEEEEEEEEE93 /* QEMUDisplay.m */,
 				EEEEEEEEEEEEEEEEEEEEEE97 /* GrasaDroid-Bridging-Header.h */,
+				EEEEEEEEEEEEEEEEEEEEEE95 /* libqemu-aarch64-softmmu.dylib */,
+				EEEEEEEEEEEEEEEEEEEEEE96 /* libANGLE-shared.dylib */,
 			);
 			path = GrasaDroid;
 			sourceTree = "<group>";
