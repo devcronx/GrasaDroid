@@ -1,0 +1,67 @@
+name: Build LASRecomp for iOS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-14
+    steps:
+      - name: Checkout LASRecomp-iOS
+        uses: actions/checkout@v4
+
+      - name: Clone LASRecomp upstream
+        run: |
+          git clone --depth 1 https://github.com/peiikai/LASRecomp.git upstream
+          cp -r upstream/runtime ./runtime_upstream
+          cp -r upstream/third_party ./third_party_upstream 2>/dev/null || true
+
+      - name: Setup Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Build SDL3 for iOS
+        run: |
+          # SDL3 ya soporta iOS via CMake
+          git clone --depth 1 -b main https://github.com/libsdl-org/SDL.git sdl3
+          cd sdl3
+          mkdir build-ios && cd build-ios
+          cmake .. \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
+            -DSDL_SHARED=OFF \
+            -DSDL_STATIC=ON \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build . -j$(sysctl -n hw.ncpu)
+          cd ../..
+
+      - name: Create Xcode project
+        run: |
+          # Generar proyecto Xcode básico para iOS
+          mkdir -p ios/LASRecomp
+          # El proyecto se genera via script
+          python3 tools/gen_xcode.py
+
+      - name: Build IPA
+        run: |
+          cd ios
+          xcodebuild -project LASRecomp.xcodeproj \
+            -scheme LASRecomp \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO
+          # Empaquetar IPA sin firmar
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/LASRecomp.app Payload/
+          zip -r LASRecomp-unsigned.ipa Payload/
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: LASRecomp-IPA
+          path: ios/LASRecomp-unsigned.ipa
