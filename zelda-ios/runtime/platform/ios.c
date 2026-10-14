@@ -1,11 +1,10 @@
 // iOS host layer (runtime/platform.h).
 // Basado en macos.c, adaptado para iOS.
+// iOS no tiene mach/mach_vm.h - usar mmap en su lugar.
 #include <dlfcn.h>
 #include <execinfo.h>
 #include <mach-o/dyld.h>
-#include <mach/mach.h>
 #include <mach/mach_time.h>
-#include <mach/mach_vm.h>
 #include <mach/thread_policy.h>
 #include <pthread.h>
 #include <signal.h>
@@ -22,13 +21,18 @@ static mach_timebase_info_data_t tb;
 void plat_init(void) {}
 
 bool plat_reserve_guest(uint64_t lo, uint64_t hi) {
-    mach_vm_address_t a = lo;
-    return mach_vm_allocate(mach_task_self(), &a, hi - lo, VM_FLAGS_FIXED) == KERN_SUCCESS;
+    // iOS: usar mmap con MAP_FIXED en lugar de mach_vm_allocate
+    void *p = mmap((void *)(uintptr_t)lo, hi - lo,
+                   PROT_READ | PROT_WRITE,
+                   MAP_PRIVATE | MAP_ANON | MAP_FIXED, -1, 0);
+    return p != MAP_FAILED;
 }
 
 bool plat_reset_guest(uint64_t lo, uint64_t hi) {
-    mach_vm_address_t a = lo;
-    return mach_vm_allocate(mach_task_self(), &a, hi - lo, VM_FLAGS_FIXED | VM_FLAGS_OVERWRITE) == KERN_SUCCESS;
+    void *p = mmap((void *)(uintptr_t)lo, hi - lo,
+                   PROT_READ | PROT_WRITE,
+                   MAP_PRIVATE | MAP_ANON | MAP_FIXED, -1, 0);
+    return p != MAP_FAILED;
 }
 
 void plat_commit(uint64_t addr, uint64_t size) { (void)addr; (void)size; }
@@ -44,8 +48,14 @@ uint64_t plat_now_ns(void) {
 }
 
 void plat_sleep_until_ns(uint64_t t) {
-    if (!tb.denom) mach_timebase_info(&tb);
-    mach_wait_until(t * tb.denom / tb.numer);
+    uint64_t now = plat_now_ns();
+    if (t <= now) return;
+    uint64_t diff_ns = t - now;
+    struct timespec ts = {
+        .tv_sec = diff_ns / 1000000000,
+        .tv_nsec = diff_ns % 1000000000
+    };
+    nanosleep(&ts, NULL);
 }
 
 void plat_thread_realtime(uint64_t period_ns) {
@@ -117,7 +127,7 @@ void plat_crash_handler_install(void) {
 }
 
 // ---- child processes: no soportado en iOS
-typedef void* PlatProc;
+// (PlatProc ya está definido como intptr_t en platform.h)
 
 PlatProc plat_spawn(const char *const argv[], const char *log_path, bool append_log) {
     (void)argv; (void)log_path; (void)append_log;
