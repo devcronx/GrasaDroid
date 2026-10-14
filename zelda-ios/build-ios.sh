@@ -3,7 +3,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ZELDA_DIR="$SCRIPT_DIR/zelda-ios"
+ZELDA_DIR="$SCRIPT_DIR"
 BUILD_DIR="$ZELDA_DIR/build-ios"
 SDK=$(xcrun -sdk iphoneos --show-sdk-path)
 
@@ -42,7 +42,7 @@ echo "[SDL3] OK: $SDL_BUILD/libSDL3.a"
 echo "[Runtime] Compilando fuentes..."
 
 CC="xcrun -sdk iphoneos clang -arch arm64 -mios-version-min=17.0 -isysroot $SDK"
-CFLAGS="-O2 -I$ZELDA_DIR/runtime -I$SDL_BUILD/include -DPLATFORM_IOS"
+CFLAGS="-O2 -I$ZELDA_DIR/runtime -I$SDL_DIR/include -DPLATFORM_IOS"
 
 OBJ_DIR="$BUILD_DIR/obj"
 mkdir -p "$OBJ_DIR"
