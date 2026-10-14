@@ -59,16 +59,9 @@ void plat_sleep_until_ns(uint64_t t) {
 }
 
 void plat_thread_realtime(uint64_t period_ns) {
-    if (!tb.denom) mach_timebase_info(&tb);
-    uint64_t period = period_ns * tb.denom / tb.numer;
-    thread_time_constraint_policy_data_t pol = {
-        .period = (uint32_t)period,
-        .computation = (uint32_t)(period / 20),
-        .constraint = (uint32_t)(period / 4),
-        .preemptible = 1,
-    };
-    thread_policy_set(pthread_mach_thread_np(pthread_self()), THREAD_TIME_CONSTRAINT_POLICY, (thread_policy_t)&pol,
-                      THREAD_TIME_CONSTRAINT_POLICY_COUNT);
+    // iOS no soporta thread_policy_set como macOS - usar QoS en su lugar
+    // Por ahora no-op; el hilo ya corre con prioridad adecuada
+    (void)period_ns;
 }
 
 bool plat_exe_path(char *buf, size_t size) {
@@ -140,8 +133,8 @@ int plat_proc_wait(PlatProc p, bool block) {
 }
 
 bool plat_remove_tree(const char *dir) {
-    // Implementación simple con nftw si está disponible, o manual
-    char cmd[4096];
-    snprintf(cmd, sizeof(cmd), "rm -rf \"%s\"", dir);
-    return system(cmd) == 0;
+    // iOS no tiene system() - no-op por ahora
+    // TODO: implementación recursiva manual
+    (void)dir;
+    return false;
 }
