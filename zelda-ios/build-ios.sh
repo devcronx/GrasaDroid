@@ -245,6 +245,13 @@ cp "$ZELDA_DIR/icon/Icon-180.png" "$APP_BUNDLE/Icon-180.png"
 # iOS busca Icon.png, Icon@2x.png, etc. - crear enlaces
 cp "$ZELDA_DIR/icon/Icon-180.png" "$APP_BUNDLE/Icon.png"
 
+# Imagen de fondo personalizada
+if [ -f "$ZELDA_DIR/assets/la-bg.webp" ]; then
+    cp "$ZELDA_DIR/assets/la-bg.webp" "$APP_BUNDLE/la-bg.webp"
+elif [ -f "$ZELDA_DIR/assets/la-bg.png" ]; then
+    cp "$ZELDA_DIR/assets/la-bg.png" "$APP_BUNDLE/la-bg.png"
+fi
+
 # Firmar con identidad ad-hoc (para sideload)
 echo "[App] Firmando (ad-hoc)..."
 codesign --force --deep --sign - "$APP_BUNDLE" 2>> "$BUILD_DIR/errors.log" || {

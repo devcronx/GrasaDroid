@@ -429,7 +429,24 @@ void ios_show_file_picker(void *which, const char *extensions) {
         g_picker_delegate.which = which;
         picker.delegate = g_picker_delegate;
         
-        UIViewController *rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
+        // Obtener el view controller de forma compatible con iOS 13+
+        UIViewController *rootVC = nil;
+        for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+            if ([scene isKindOfClass:[UIWindowScene class]]) {
+                UIWindowScene *windowScene = (UIWindowScene *)scene;
+                for (UIWindow *window in windowScene.windows) {
+                    if (window.isKeyWindow) {
+                        rootVC = window.rootViewController;
+                        break;
+                    }
+                }
+                if (rootVC) break;
+            }
+        }
+        if (!rootVC) {
+            // Fallback para iOS < 13
+            rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
+        }
         while (rootVC.presentedViewController) rootVC = rootVC.presentedViewController;
         [rootVC presentViewController:picker animated:YES completion:nil];
     });
@@ -519,8 +536,29 @@ static int g_bg_w, g_bg_h;
 
 static void load_background(GpuDevice dev) {
 #ifdef PLATFORM_IOS
-    (void)dev;
-    return;  // Sin FFmpeg en iOS: sin video de fondo
+    // iOS: cargar imagen de fondo personalizada de Link's Awakening
+    NSString *bgPath = [[NSBundle mainBundle] pathForResource:@"la-bg" ofType:@"webp"];
+    if (!bgPath) bgPath = [[NSBundle mainBundle] pathForResource:@"la-bg" ofType:@"png"];
+    if (bgPath) {
+        UIImage *img = [UIImage imageWithContentsOfFile:bgPath];
+        if (img) {
+            CGImageRef cgImg = img.CGImage;
+            size_t w = CGImageGetWidth(cgImg), h = CGImageGetHeight(cgImg);
+            std::vector<uint8_t> rgba(w * h * 4);
+            CGContextRef ctx = CGBitmapContextCreate(rgba.data(), w, h, 8, w * 4,
+                CGColorSpaceCreateDeviceRGB(), kCGImageAlphaPremultipliedLast);
+            if (ctx) {
+                CGContextDrawImage(ctx, CGRectMake(0, 0, w, h), cgImg);
+                CGContextRelease(ctx);
+                MTLTextureDescriptor *td = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
+                                                                                              width:w height:h mipmapped:NO];
+                g_bg = [dev newTextureWithDescriptor:td];
+                [g_bg replaceRegion:MTLRegionMake2D(0, 0, w, h) mipmapLevel:0 withBytes:rgba.data() bytesPerRow:w * 4];
+                g_bg_w = (int)w; g_bg_h = (int)h;
+            }
+        }
+    }
+    return;
 #else
     std::string path = g_root + "/romfs/region_common/movie/title.webm";
     AVFormatContext *fmt = NULL;
@@ -1109,7 +1147,7 @@ extern "C" void launcher_run(const char *root) {
             ImVec2 ds = io.DisplaySize;
             float s = ds.y / 720.0f;  // layout scale (fonts are built for ~2x)
 #ifdef PLATFORM_IOS
-            ImGui::GetIO().FontGlobalScale = s * 1.0f;  // iOS: texto más grande y legible
+            ImGui::GetIO().FontGlobalScale = s * 1.5f;  // iOS: texto mucho más grande y legible
 #else
             ImGui::GetIO().FontGlobalScale = s * 0.5f;
 #endif
