@@ -121,10 +121,62 @@ fi
 echo ""
 echo "=== Linkeando ejecutable ==="
 
+# 3b. Compilar UI (.mm) e ImGui para iOS
+echo "[UI] Compilando interfaz y trucos..."
+CXX="xcrun -sdk iphoneos clang++ -arch arm64 -mios-version-min=17.0 -isysroot $SDK"
+CXXFLAGS="-O2 -std=c++17 -I$ZELDA_DIR/runtime -I$ZELDA_DIR/third_party/imgui -I$ZELDA_DIR/third_party/smaa/Textures -I$SDL_DIR/include -DPLATFORM_IOS -DIMGUI_IMPL_METAL_CPP"
+
+IMGUI_DIR="$ZELDA_DIR/third_party/imgui"
+IMGUI_SRCS="$IMGUI_DIR/imgui.cpp $IMGUI_DIR/imgui_draw.cpp $IMGUI_DIR/imgui_tables.cpp $IMGUI_DIR/imgui_widgets.cpp $IMGUI_DIR/backends/imgui_impl_sdl3.cpp"
+IMGUI_MM="$IMGUI_DIR/backends/imgui_impl_metal.mm"
+
+for src in $IMGUI_SRCS; do
+    rel=$(echo "$src" | sed "s|$ZELDA_DIR/||")
+    obj="$OBJ_DIR/${rel%.cpp}.o"
+    mkdir -p "$(dirname "$obj")"
+    echo "  - $rel"
+    if ! $CXX $CXXFLAGS -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
+        echo "    ERROR en $rel"
+        FAILED=1
+    fi
+done
+
+# imgui_impl_metal.mm (Objective-C++)
+rel="third_party/imgui/backends/imgui_impl_metal.mm"
+obj="$OBJ_DIR/third_party/imgui/backends/imgui_impl_metal.o"
+mkdir -p "$(dirname "$obj")"
+echo "  - $rel"
+if ! $CXX $CXXFLAGS -fobjc-arc -c "$IMGUI_MM" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
+    echo "    ERROR en $rel"
+    FAILED=1
+fi
+
+# UI .mm files (launcher, menu, cheats, etc.)
+UI_SRCS=$(find "$ZELDA_DIR/runtime/ui" -name "*.mm")
+for src in $UI_SRCS; do
+    rel=$(echo "$src" | sed "s|$ZELDA_DIR/||")
+    obj="$OBJ_DIR/${rel%.mm}.o"
+    mkdir -p "$(dirname "$obj")"
+    echo "  - $rel"
+    if ! $CXX $CXXFLAGS -fobjc-arc -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
+        echo "    ERROR en $rel"
+        FAILED=1
+    fi
+done
+
+if [ "$FAILED" = "1" ]; then
+    echo ""
+    echo "=== ERRORES DE COMPILACIÓN (UI) ==="
+    grep -E "error:" "$BUILD_DIR/errors.log" | head -30
+    exit 1
+fi
+
+echo "[UI] OK"
+
 # 4. Linkear todo en un ejecutable
 APP_NAME="LASRecomp"
 OBJS=$(find "$OBJ_DIR" -name "*.o")
-LINK_FLAGS="-framework Foundation -framework Metal -framework MetalFX -framework QuartzCore -framework UIKit -framework CoreGraphics"
+LINK_FLAGS="-framework Foundation -framework Metal -framework MetalFX -framework QuartzCore -framework UIKit -framework CoreGraphics -lc++"
 
 $CC -o "$BUILD_DIR/$APP_NAME" $OBJS "$SDL_BUILD/libSDL3.a" $LINK_FLAGS 2>> "$BUILD_DIR/errors.log" || {
     echo "ERROR en linkeo (ver errors.log)"
