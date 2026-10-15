@@ -56,10 +56,6 @@ if [ ! -f "$INC_DIR/smaa_hlsl.inc" ]; then
 fi
 CFLAGS="$CFLAGS -I$INC_DIR"
 
-# Compilar platform/ios.c
-echo "  - platform/ios.c"
-$CC $CFLAGS -c "$ZELDA_DIR/runtime/platform/ios.c" -o "$OBJ_DIR/ios.o"
-
 # Compilar todo el runtime C (excluyendo Vulkan, FFmpeg/movie.c)
 echo "[Runtime] Compilando todas las fuentes C..."
 RT_SRCS=$(find "$ZELDA_DIR/runtime" -name "*.c" \
