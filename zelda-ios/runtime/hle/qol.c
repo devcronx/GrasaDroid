@@ -14,7 +14,7 @@
 
 #ifdef PLATFORM_IOS
 // Stub para código generado ausente (solo se usa en logging de debug)
-void f_7000ded9f0(void *c) { (void)c; }
+void f_7000ded9f0(Cpu *c) { (void)c; }
 #endif
 
 // 360-degree movement: main+0xded9f0 (tools/patches.py SNAP_DIR_SITE) turns the stick vector (s1 = x, s2 = y) into
