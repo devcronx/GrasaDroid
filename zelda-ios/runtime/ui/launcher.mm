@@ -370,6 +370,10 @@ done:
 
 // ------------------------------------------------------------------ file dialogs (SDL calls back on any thread)
 #ifdef PLATFORM_IOS
+// Forward declarations
+static void SDLCALL picked(void *which, const char *const *files, int);
+extern "C" void ios_file_picked(void *which, const char *path);
+
 // iOS: UIDocumentPickerViewController para seleccionar archivos
 // (SDL_ShowOpenFileDialog no funciona en iOS)
 @interface IOSFilePickerDelegate : NSObject <UIDocumentPickerDelegate>
@@ -393,7 +397,6 @@ done:
             if ([fm copyItemAtURL:url toURL:[NSURL fileURLWithPath:destPath] error:&error]) {
                 const char *path = [destPath UTF8String];
                 // Llamar al callback original
-                extern void ios_file_picked(void *which, const char *path);
                 ios_file_picked(self.which, path);
             }
             [url stopAccessingSecurityScopedResource];
@@ -433,7 +436,7 @@ void ios_show_file_picker(void *which, const char *extensions) {
 }
 
 // Callback desde el picker de iOS
-extern "C" void ios_file_picked(void *which, const char *path) {
+void ios_file_picked(void *which, const char *path) {
     const char *files[2] = {path, NULL};
     picked(which, files, 1);
 }
