@@ -382,84 +382,97 @@ extern "C" void ios_file_picked(void *which, const char *path);
 @end
 @implementation IOSFilePickerDelegate
 - (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
+    NSLog(@"[LASRecomp] didPickDocumentsAtURLs llamado con %lu URLs", (unsigned long)urls.count);
     if (urls.count > 0) {
         NSURL *url = urls[0];
+        NSLog(@"[LASRecomp] URL seleccionada: %@", url);
         NSString *fileName = url.lastPathComponent;
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
         NSString *docsDir = paths[0];
         NSString *destPath = [docsDir stringByAppendingPathComponent:fileName];
+        NSLog(@"[LASRecomp] Destino: %@", destPath);
         
-        // FEEDBACK INMEDIATO: marcar como seleccionado antes de copiar
+        // FEEDBACK INMEDIATO
         static char immediatePath[4096];
         strncpy(immediatePath, [destPath UTF8String], sizeof(immediatePath) - 1);
         immediatePath[sizeof(immediatePath) - 1] = '\0';
         void *whichCopy = self.which;
-        // Mostrar "Seleccionado" inmediatamente en la UI
         dispatch_async(dispatch_get_main_queue(), ^{
+            NSLog(@"[LASRecomp] Llamando ios_file_picked");
             ios_file_picked(whichCopy, immediatePath);
         });
         
-        // Copiar el archivo en background
-        if ([url startAccessingSecurityScopedResource]) {
+        // Copiar en background
+        BOOL accessed = [url startAccessingSecurityScopedResource];
+        NSLog(@"[LASRecomp] Security scoped access: %d", accessed);
+        if (accessed) {
             NSFileManager *fm = [NSFileManager defaultManager];
             if ([fm fileExistsAtPath:destPath]) [fm removeItemAtPath:destPath error:nil];
             NSString *destCopy = [destPath copy];
+            NSURL *urlCopy = [url copy];
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
                 NSError *copyError = nil;
-                [fm copyItemAtURL:url toURL:[NSURL fileURLWithPath:destCopy] error:&copyError];
-                [url stopAccessingSecurityScopedResource];
-                // Si la copia falló, limpiar la selección
-                if (copyError) {
-                    dispatch_async(dispatch_get_main_queue(), ^{
-                        ios_file_picked(whichCopy, "");
-                    });
-                }
+                BOOL ok = [fm copyItemAtURL:urlCopy toURL:[NSURL fileURLWithPath:destCopy] error:&copyError];
+                NSLog(@"[LASRecomp] Copia completada: %d, error: %@", ok, copyError);
+                [urlCopy stopAccessingSecurityScopedResource];
             });
         }
     }
 }
 - (void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller {
-    // Usuario canceló, no hacer nada
+    NSLog(@"[LASRecomp] Picker cancelado por el usuario");
 }
 @end
 
 static IOSFilePickerDelegate *g_picker_delegate = nil;
 
 void ios_show_file_picker(void *which, const char *extensions) {
+    // Obtener la ventana SDL global
+    extern SDL_Window *g_launcher_win;
+    SDL_Window *win = g_launcher_win;
+    
     dispatch_async(dispatch_get_main_queue(), ^{
-        // Usar document types como strings (más compatible)
         NSArray *docTypes = @[@"public.data"];
-        
         UIDocumentPickerViewController *picker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:docTypes inMode:UIDocumentPickerModeOpen];
         picker.allowsMultipleSelection = NO;
         
-        // Crear un delegate nuevo cada vez para evitar race conditions
         IOSFilePickerDelegate *delegate = [[IOSFilePickerDelegate alloc] init];
         delegate.which = which;
         picker.delegate = delegate;
-        // Retener el delegate con el picker
         objc_setAssociatedObject(picker, "delegate", delegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         
-        // Obtener el view controller de forma compatible con iOS 13+
+        // Obtener el UIViewController desde la ventana SDL
         UIViewController *rootVC = nil;
-        for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
-            if ([scene isKindOfClass:[UIWindowScene class]]) {
-                UIWindowScene *windowScene = (UIWindowScene *)scene;
-                for (UIWindow *window in windowScene.windows) {
-                    if (window.isKeyWindow) {
-                        rootVC = window.rootViewController;
-                        break;
+        if (win) {
+            SDL_PropertiesID props = SDL_GetWindowProperties(win);
+            // En iOS, SDL guarda el UIViewController en las propiedades
+            NSNumber *vcPtr = (__bridge NSNumber *)SDL_GetPointerProperty(props, "SDL.window.ios.viewcontroller", NULL);
+            if (vcPtr) {
+                rootVC = (__bridge UIViewController *)(void *)[vcPtr unsignedLongLongValue];
+            }
+        }
+        // Fallback: buscar en las escenas
+        if (!rootVC) {
+            for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+                if ([scene isKindOfClass:[UIWindowScene class]]) {
+                    UIWindowScene *windowScene = (UIWindowScene *)scene;
+                    for (UIWindow *window in windowScene.windows) {
+                        if (window.isKeyWindow) {
+                            rootVC = window.rootViewController;
+                            break;
+                        }
                     }
+                    if (rootVC) break;
                 }
-                if (rootVC) break;
             }
         }
         if (!rootVC) {
-            // Fallback para iOS < 13
             rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
         }
-        while (rootVC.presentedViewController) rootVC = rootVC.presentedViewController;
-        [rootVC presentViewController:picker animated:YES completion:nil];
+        // Si el rootVC es un SDL view controller, presentamos desde él
+        UIViewController *presentVC = rootVC;
+        while (presentVC.presentedViewController) presentVC = presentVC.presentedViewController;
+        [presentVC presentViewController:picker animated:YES completion:nil];
     });
 }
 
