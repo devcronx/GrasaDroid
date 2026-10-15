@@ -13,6 +13,7 @@
 #ifdef PLATFORM_IOS
 #import <UIKit/UIKit.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#import <objc/runtime.h>
 #endif
 #include <SDL3/SDL.h>
 #include <ctype.h>
@@ -394,12 +395,22 @@ extern "C" void ios_file_picked(void *which, const char *path);
             NSError *error = nil;
             NSFileManager *fm = [NSFileManager defaultManager];
             if ([fm fileExistsAtPath:destPath]) [fm removeItemAtPath:destPath error:nil];
-            if ([fm copyItemAtURL:url toURL:[NSURL fileURLWithPath:destPath] error:&error]) {
-                const char *path = [destPath UTF8String];
-                // Llamar al callback original
-                ios_file_picked(self.which, path);
-            }
-            [url stopAccessingSecurityScopedResource];
+            // Copiar en background para no bloquear la UI (archivos grandes como NSP de 6GB)
+            NSString *destCopy = [destPath copy];
+            void *whichCopy = self.which;
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                NSError *copyError = nil;
+                if ([fm copyItemAtURL:url toURL:[NSURL fileURLWithPath:destCopy] error:&copyError]) {
+                    // Guardar la ruta en un buffer estático para que no se libere
+                    static char pathBuffer[4096];
+                    strncpy(pathBuffer, [destCopy UTF8String], sizeof(pathBuffer) - 1);
+                    pathBuffer[sizeof(pathBuffer) - 1] = '\0';
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        ios_file_picked(whichCopy, pathBuffer);
+                    });
+                }
+                [url stopAccessingSecurityScopedResource];
+            });
         }
     }
 }
@@ -412,22 +423,19 @@ static IOSFilePickerDelegate *g_picker_delegate = nil;
 
 void ios_show_file_picker(void *which, const char *extensions) {
     dispatch_async(dispatch_get_main_queue(), ^{
-        // Crear tipos de archivo basados en extensiones
-        NSMutableArray<UTType *> *types = [NSMutableArray array];
-        NSString *extStr = [NSString stringWithUTF8String:extensions];
-        NSArray *exts = [extStr componentsSeparatedByString:@";"];
-        for (NSString *ext in exts) {
-            UTType *type = [UTType typeWithFilenameExtension:ext];
-            if (type) [types addObject:type];
-        }
-        if (types.count == 0) [types addObject:UTTypeData];
+        // Para NSP/XCI/KEYS usar UTTypeData genérico que siempre funciona
+        NSArray<UTType *> *types = @[UTTypeData];
         
-        UIDocumentPickerViewController *picker = [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:types];
+        UIDocumentPickerViewController *picker = [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:types asCopy:YES];
         picker.allowsMultipleSelection = NO;
         
-        if (!g_picker_delegate) g_picker_delegate = [[IOSFilePickerDelegate alloc] init];
-        g_picker_delegate.which = which;
-        picker.delegate = g_picker_delegate;
+        // Retener el delegate fuertemente
+        static IOSFilePickerDelegate *strongDelegate = nil;
+        if (!strongDelegate) strongDelegate = [[IOSFilePickerDelegate alloc] init];
+        strongDelegate.which = which;
+        picker.delegate = strongDelegate;
+        // Guardar referencia para que no se libere
+        objc_setAssociatedObject(picker, "delegate", strongDelegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         
         // Obtener el view controller de forma compatible con iOS 13+
         UIViewController *rootVC = nil;
