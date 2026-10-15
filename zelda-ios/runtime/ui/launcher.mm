@@ -187,7 +187,7 @@ static std::string check_game_files(const std::string &root) {
 
 // ------------------------------------------------------------------ extraction (background thread)
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
-static std::string g_dump, g_keys;  // picked files
+static std::string g_dump, g_keys, g_keys2;  // picked files (g_keys2 = title.keys para NSP)
 static std::string g_job;           // current extraction step / result for the status line
 static std::string g_job_hint;      // a failure: what to do about it (shown under it)
 static bool g_busy, g_job_failed;
@@ -310,9 +310,9 @@ static float extract_progress(void) {
 }
 
 static void *extract_thread(void *) {
-    std::string dump, keys;
+    std::string dump, keys, keys2;
     pthread_mutex_lock(&g_lock);
-    dump = g_dump, keys = g_keys;
+    dump = g_dump, keys = g_keys, keys2 = g_keys2;
     pthread_mutex_unlock(&g_lock);
     
     // Validar que los archivos existen y son legibles antes de extraer
@@ -338,6 +338,18 @@ static void *extract_thread(void *) {
                 "Asegúrate de seleccionar tu prod.keys real de la Switch.");
         goto done;
     }
+    // Para NSP, advertir si no hay title.keys (pero permitir continuar por si el ticket lo tiene)
+    bool nsp_check = dump.size() > 4 && !strcasecmp(dump.c_str() + dump.size() - 4, ".nsp");
+    if (nsp_check && keys2.empty()) {
+        fprintf(stderr, "[launcher] ADVERTENCIA: NSP sin title.keys seleccionado. Se intentará extraer la titlekey del ticket.\n");
+    }
+    if (!keys2.empty()) {
+        if (stat(keys2.c_str(), &st) != 0) {
+            set_job("No se encontró el archivo title.keys", true,
+                    "El archivo title.keys no existe. Vuelve a seleccionarlo o déjalo vacío.");
+            goto done;
+        }
+    }
     
     char hpath[1024];
     std::string hactool = rt_resource("hactool" PLAT_EXE_SUFFIX, "tools/hactool/hactool" PLAT_EXE_SUFFIX, hpath, sizeof hpath)
@@ -352,6 +364,22 @@ static void *extract_thread(void *) {
     pthread_mutex_unlock(&g_lock);
     set_job("Reading the game dump...");
     if (clean_keys(keys, tmp + "/prod.keys") >= 0) keys = tmp + "/prod.keys";  // (removed with .extract at the end)
+    // Si hay title.keys, agregarlo al archivo combinado
+    if (!keys2.empty()) {
+        FILE *in = fopen(keys2.c_str(), "rb");
+        FILE *out = fopen(keys.c_str(), "ab");
+        if (in && out) {
+            char buf[8192];
+            size_t n;
+            fputc('\n', out);  // separador
+            while ((n = fread(buf, 1, sizeof(buf), in)) > 0) fwrite(buf, 1, n, out);
+            fclose(in); fclose(out);
+            fprintf(stderr, "[launcher] title.keys agregado a las keys combinadas\n");
+        } else {
+            if (in) fclose(in);
+            if (out) fclose(out);
+        }
+    }
     std::vector<std::string> a = {hactool, "-k", keys};
     std::string titlekey;
     if (nsp) {
@@ -489,7 +517,9 @@ void ios_file_picked(void *which, const char *path) {
 static void SDLCALL picked(void *which, const char *const *files, int) {
     if (!files || !files[0]) return;
     pthread_mutex_lock(&g_lock);
-    (which == (void *)1 ? g_dump : g_keys) = files[0];
+    if (which == (void *)1) g_dump = files[0];
+    else if (which == (void *)2) g_keys = files[0];
+    else if (which == (void *)3) g_keys2 = files[0];
     pthread_mutex_unlock(&g_lock);
 }
 
@@ -1416,7 +1446,7 @@ extern "C" void launcher_run(const char *root) {
                 ImGui::Spacing();
 
                 pthread_mutex_lock(&g_lock);
-                std::string dump = g_dump, keys = g_keys, job = g_job, job_hint = g_job_hint;
+                std::string dump = g_dump, keys = g_keys, keys2 = g_keys2, job = g_job, job_hint = g_job_hint;
                 bool failed = g_job_failed;
                 pthread_mutex_unlock(&g_lock);
                 if (keys.empty()) {  // (the usual place for them: picked up on its own)
@@ -1428,7 +1458,7 @@ extern "C" void launcher_run(const char *root) {
                 static double files_gb = -1;
                 // chosen: "Selected" with a green check (long dump names ran over the label); the path is in the
                 // explanation, and choosing again opens the picker again
-                std::string dump_v = dump.empty() ? "Choose..." : "Selected", keys_v = keys.empty() ? "Choose..." : "Selected";
+                std::string dump_v = dump.empty() ? "Choose..." : "Selected", keys_v = keys.empty() ? "Choose..." : "Selected", keys2_v = keys2.empty() ? "Choose... (optional)" : "Selected";
                 auto check_left_of_value = [&](const std::string &v) {
                     if (v != "Selected") return;
                     ImVec2 rb = ImGui::GetItemRectMax(), ra = ImGui::GetItemRectMin();
@@ -1444,6 +1474,8 @@ extern "C" void launcher_run(const char *root) {
                 if (!dump.empty()) dump_d += "\n\nChosen: " + dump;
                 std::string keys_d = "Your Switch's prod.keys, dumped from your own console. They unlock the game dump.";
                 if (!keys.empty()) keys_d += "\n\nChosen: " + keys;
+                std::string keys2_d = "Your Switch's title.keys (for NSP files). Contains the title keys for your games.";
+                if (!keys2.empty()) keys2_d += "\n\nChosen: " + keys2;
                 // the step that's running / its result, under the rows and in the Extract row's explanation
                 const std::string &job_line = job;
                 std::string ex_d = "Unpacks the game files LAS Recomp needs from your dump, once: a few minutes. Your "
@@ -1477,6 +1509,15 @@ extern "C" void launcher_run(const char *root) {
                         SDL_ShowOpenFileDialog(picked, (void *)2, win, (const SDL_DialogFileFilter[]){{"Keys", "keys;txt"}}, 1, NULL, false);
 #endif
                     check_left_of_value(keys_v);
+                    first_row();
+                    if (busy) opt_disable_next();
+                    if (opt_action("Title keys (NSP)", keys2_v.c_str(), keys2_d.c_str(), true))
+#ifdef PLATFORM_IOS
+                        ios_show_file_picker((void *)3, "keys;txt");
+#else
+                        SDL_ShowOpenFileDialog(picked, (void *)3, win, (const SDL_DialogFileFilter[]){{"Title keys", "keys;txt"}}, 1, NULL, false);
+#endif
+                    check_left_of_value(keys2_v);
                     opt_section("Set up");
                     if (busy || dump.empty() || keys.empty()) opt_disable_next();
                     if (opt_action("Extract game files", busy ? "Working..." : "", ex_d.c_str(), true)) {
