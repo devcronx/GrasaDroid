@@ -221,13 +221,58 @@ static void set_failure(int k) {
     if (k >= 1 && k <= 5) set_job(head[k], true, hint[k]);
 }
 
+#ifdef PLATFORM_IOS
+// hactool compilado dentro de la app (iOS no permite subprocesos)
+// main.c se compila con -Dmain=hactool_main
+extern "C" int hactool_main(int argc, char *argv[]);
+extern "C" {
+    // getopt usa estado global; hay que reiniciarlo entre llamadas
+    extern int optind;
+}
+static int run_hactool(const std::vector<std::string> &args, const std::string &log) {
+    // Redirigir stderr al log para diagnóstico
+    FILE *logf = fopen(log.c_str(), "a");
+    int saved_stderr = -1;
+    if (logf) {
+        saved_stderr = dup(STDERR_FILENO);
+        dup2(fileno(logf), STDERR_FILENO);
+    }
+    // Construir argv
+    std::vector<char *> av;
+    for (auto &a : args) av.push_back(const_cast<char*>(a.c_str()));
+    av.push_back(NULL);
+    // Reiniciar getopt
+    optind = 1;
+    int ret = hactool_main((int)av.size() - 1, av.data());
+    // Restaurar stderr
+    if (logf) {
+        fflush(stderr);
+        if (saved_stderr >= 0) {
+            dup2(saved_stderr, STDERR_FILENO);
+            close(saved_stderr);
+        }
+        fclose(logf);
+    }
+    return ret;
+}
+#endif
+
 static int run(const std::vector<std::string> &args, const std::string &log) {
     std::vector<const char *> av;
     for (auto &a : args) av.push_back(a.c_str());
     av.push_back(NULL);
+#ifdef PLATFORM_IOS
+    // En iOS no hay subprocesos: llamar a hactool directamente
+    // (el primer arg es el nombre del programa, lo ignoramos para el log)
+    std::vector<std::string> hargs(args.begin() + 1, args.end());
+    // hactool_main espera argv[0] como nombre del programa
+    hargs.insert(hargs.begin(), "hactool");
+    return run_hactool(hargs, log);
+#else
     PlatProc p = plat_spawn(av.data(), log.c_str(), true);
     if (!p) return -1;
     return plat_proc_wait(p, true);
+#endif
 }
 
 static std::string largest_with(const std::string &dir, const char *ext) {

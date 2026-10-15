@@ -171,28 +171,14 @@ fi
 
 echo "[UI] OK"
 
-# 4. Linkear todo en un ejecutable
-APP_NAME="LASRecomp"
-OBJS=$(find "$OBJ_DIR" -name "*.o")
-# Frameworks que SDL3 necesita en iOS (audio, video, bluetooth, sensores, etc.)
-LINK_FLAGS="-framework Foundation -framework Metal -framework MetalFX -framework QuartzCore -framework UIKit -framework CoreGraphics -framework AVFoundation -framework AudioToolbox -framework CoreBluetooth -framework ImageIO -framework OpenGLES -framework CoreVideo -framework CoreMedia -framework Security -framework GameController -framework CoreMotion -framework CoreHaptics -framework UserNotifications -framework UniformTypeIdentifiers -lc++"
-
-$CC -o "$BUILD_DIR/$APP_NAME" $OBJS "$SDL_BUILD/libSDL3.a" $LINK_FLAGS 2>> "$BUILD_DIR/errors.log" || {
-    echo "ERROR en linkeo (ver errors.log)"
-    grep -E "error:" "$BUILD_DIR/errors.log" | head -20
-    exit 1
-}
-
-echo "[Link] OK: $BUILD_DIR/$APP_NAME"
-
 # 4.5. Compilar hactool para iOS (necesario para extraer el NSP/XCI)
 echo "[hactool] Compilando para iOS..."
 HACTOOL_DIR="$BUILD_DIR/hactool"
 if [ ! -d "$HACTOOL_DIR" ]; then
     git clone --depth 1 https://github.com/SciresM/hactool.git "$HACTOOL_DIR"
 fi
-HACTOOL_BIN="$BUILD_DIR/hactool-ios"
-if [ ! -f "$HACTOOL_BIN" ]; then
+HACTOOL_OBJS_FILE="$BUILD_DIR/hactool-objs.txt"
+if [ ! -f "$HACTOOL_OBJS_FILE" ]; then
     cd "$HACTOOL_DIR"
     # Compilar mbedtls directamente (sin su sistema de build, que falla en iOS)
     echo "[hactool] Compilando mbedtls (directo)..."
@@ -215,9 +201,8 @@ if [ ! -f "$HACTOOL_BIN" ]; then
         fi
     done
     echo "[hactool] mbedtls: $(echo $MBEDTLS_OBJS | wc -w) objetos"
-    MBEDTLS_LIB_DIR=""
-    echo "[hactool] Compilando fuentes..."
-    HACTOOL_SRCS="save.c sha.c aes.c extkeys.c rsa.c npdm.c bktr.c kip.c packages.c pki.c pfs0.c hfs0.c nca0_romfs.c romfs.c utils.c nax0.c nso.c lz4.c nca.c xci.c main.c filepath.c ConvertUTF.c cJSON.c"
+    echo "[hactool] Compilando fuentes (como librería, main->hactool_main)..."
+    HACTOOL_SRCS="save.c sha.c aes.c extkeys.c rsa.c npdm.c bktr.c kip.c packages.c pki.c pfs0.c hfs0.c nca0_romfs.c romfs.c utils.c nax0.c nso.c lz4.c nca.c xci.c filepath.c ConvertUTF.c cJSON.c"
     HACTOOL_CFLAGS="-arch arm64 -mios-version-min=17.0 -isysroot $SDK -O2 -I./mbedtls/include -D_BSD_SOURCE -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L -D_DEFAULT_SOURCE -D_FILE_OFFSET_BITS=64"
     HACTOOL_OBJS=""
     for src in $HACTOOL_SRCS; do
@@ -232,14 +217,34 @@ if [ ! -f "$HACTOOL_BIN" ]; then
         fi
         HACTOOL_OBJS="$HACTOOL_OBJS $obj"
     done
-    xcrun -sdk iphoneos clang -arch arm64 -mios-version-min=17.0 -isysroot "$SDK" -o "$HACTOOL_BIN" $HACTOOL_OBJS $MBEDTLS_OBJS 2>> "$BUILD_DIR/errors.log" || {
-        echo "ERROR linkeando hactool"
+    # main.c se compila con main renombrado a hactool_main para llamarlo como función
+    # (iOS no permite spawn de subprocesos)
+    obj="$BUILD_DIR/hactool-obj/hactool_main.o"
+    xcrun -sdk iphoneos clang $HACTOOL_CFLAGS -Dmain=hactool_main -c "main.c" -o "$obj" 2>> "$BUILD_DIR/errors.log" || {
+        echo "ERROR compilando hactool main.c"
         grep -E "error:" "$BUILD_DIR/errors.log" | head -10
         exit 1
     }
+    HACTOOL_OBJS="$HACTOOL_OBJS $obj"
+    echo "$HACTOOL_OBJS $MBEDTLS_OBJS" > "$HACTOOL_OBJS_FILE"
     cd "$SCRIPT_DIR"
 fi
-echo "[hactool] OK: $HACTOOL_BIN"
+HACTOOL_OBJS=$(cat "$HACTOOL_OBJS_FILE")
+echo "[hactool] OK: objetos listos para linkear en la app"
+# 4. Linkear todo en un ejecutable
+APP_NAME="LASRecomp"
+OBJS=$(find "$OBJ_DIR" -name "*.o")
+# Frameworks que SDL3 necesita en iOS (audio, video, bluetooth, sensores, etc.)
+LINK_FLAGS="-framework Foundation -framework Metal -framework MetalFX -framework QuartzCore -framework UIKit -framework CoreGraphics -framework AVFoundation -framework AudioToolbox -framework CoreBluetooth -framework ImageIO -framework OpenGLES -framework CoreVideo -framework CoreMedia -framework Security -framework GameController -framework CoreMotion -framework CoreHaptics -framework UserNotifications -framework UniformTypeIdentifiers -lc++"
+
+$CC -o "$BUILD_DIR/$APP_NAME" $OBJS $HACTOOL_OBJS "$SDL_BUILD/libSDL3.a" $LINK_FLAGS 2>> "$BUILD_DIR/errors.log" || {
+    echo "ERROR en linkeo (ver errors.log)"
+    grep -E "error:" "$BUILD_DIR/errors.log" | head -20
+    exit 1
+}
+
+echo "[Link] OK: $BUILD_DIR/$APP_NAME"
+
 
 # 5. Crear .app bundle
 echo "[App] Creando bundle..."
@@ -308,10 +313,7 @@ elif [ -f "$ZELDA_DIR/assets/la-bg.png" ]; then
     cp "$ZELDA_DIR/assets/la-bg.png" "$APP_BUNDLE/la-bg.png"
 fi
 
-# hactool para extraer el NSP/XCI (va en tools/hactool/ como espera rt_resource)
-mkdir -p "$APP_BUNDLE/tools/hactool"
-cp "$HACTOOL_BIN" "$APP_BUNDLE/tools/hactool/hactool"
-chmod +x "$APP_BUNDLE/tools/hactool/hactool"
+# (hactool va linkeado dentro del ejecutable, no como binario separado - iOS no permite subprocesos)
 
 # Firmar con identidad ad-hoc (para sideload)
 echo "[App] Firmando (ad-hoc)..."
