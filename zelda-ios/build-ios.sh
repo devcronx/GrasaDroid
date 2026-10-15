@@ -47,6 +47,15 @@ CFLAGS="-O2 -I$ZELDA_DIR/runtime -I$ZELDA_DIR/third_party/smaa/Textures -I$SDL_D
 OBJ_DIR="$BUILD_DIR/obj"
 mkdir -p "$OBJ_DIR"
 
+# Generar smaa_hlsl.inc desde SMAA.hlsl (como hace el Makefile)
+INC_DIR="$BUILD_DIR/inc"
+mkdir -p "$INC_DIR"
+if [ ! -f "$INC_DIR/smaa_hlsl.inc" ]; then
+    echo "[SMAA] Generando smaa_hlsl.inc..."
+    LC_ALL=C tr -d '\r' < "$ZELDA_DIR/third_party/smaa/SMAA.hlsl" | LC_ALL=C tr '\200-\377' '?' | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/^/"/' -e 's/$/\\n"/' > "$INC_DIR/smaa_hlsl.inc"
+fi
+CFLAGS="$CFLAGS -I$INC_DIR"
+
 # Compilar platform/ios.c
 echo "  - platform/ios.c"
 $CC $CFLAGS -c "$ZELDA_DIR/runtime/platform/ios.c" -o "$OBJ_DIR/ios.o"
