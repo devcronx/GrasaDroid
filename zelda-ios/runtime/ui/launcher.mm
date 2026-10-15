@@ -10,6 +10,10 @@
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
 #endif
+#ifdef PLATFORM_IOS
+#import <UIKit/UIKit.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#endif
 #include <SDL3/SDL.h>
 #include <ctype.h>
 #include <dirent.h>
@@ -365,6 +369,76 @@ done:
 }
 
 // ------------------------------------------------------------------ file dialogs (SDL calls back on any thread)
+#ifdef PLATFORM_IOS
+// iOS: UIDocumentPickerViewController para seleccionar archivos
+// (SDL_ShowOpenFileDialog no funciona en iOS)
+@interface IOSFilePickerDelegate : NSObject <UIDocumentPickerDelegate>
+@property (nonatomic, assign) void *which;
+@end
+@implementation IOSFilePickerDelegate
+- (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
+    if (urls.count > 0) {
+        NSURL *url = urls[0];
+        // Copiar el archivo al directorio de la app para acceso persistente
+        NSString *fileName = url.lastPathComponent;
+        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+        NSString *docsDir = paths[0];
+        NSString *destPath = [docsDir stringByAppendingPathComponent:fileName];
+        
+        // Dar acceso al archivo
+        if ([url startAccessingSecurityScopedResource]) {
+            NSError *error = nil;
+            NSFileManager *fm = [NSFileManager defaultManager];
+            if ([fm fileExistsAtPath:destPath]) [fm removeItemAtPath:destPath error:nil];
+            if ([fm copyItemAtURL:url toURL:[NSURL fileURLWithPath:destPath] error:&error]) {
+                const char *path = [destPath UTF8String];
+                // Llamar al callback original
+                extern void ios_file_picked(void *which, const char *path);
+                ios_file_picked(self.which, path);
+            }
+            [url stopAccessingSecurityScopedResource];
+        }
+    }
+}
+- (void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller {
+    // Usuario canceló, no hacer nada
+}
+@end
+
+static IOSFilePickerDelegate *g_picker_delegate = nil;
+
+void ios_show_file_picker(void *which, const char *extensions) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        // Crear tipos de archivo basados en extensiones
+        NSMutableArray<UTType *> *types = [NSMutableArray array];
+        NSString *extStr = [NSString stringWithUTF8String:extensions];
+        NSArray *exts = [extStr componentsSeparatedByString:@";"];
+        for (NSString *ext in exts) {
+            UTType *type = [UTType typeWithFilenameExtension:ext];
+            if (type) [types addObject:type];
+        }
+        if (types.count == 0) [types addObject:UTTypeData];
+        
+        UIDocumentPickerViewController *picker = [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:types];
+        picker.allowsMultipleSelection = NO;
+        
+        if (!g_picker_delegate) g_picker_delegate = [[IOSFilePickerDelegate alloc] init];
+        g_picker_delegate.which = which;
+        picker.delegate = g_picker_delegate;
+        
+        UIViewController *rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
+        while (rootVC.presentedViewController) rootVC = rootVC.presentedViewController;
+        [rootVC presentViewController:picker animated:YES completion:nil];
+    });
+}
+
+// Callback desde el picker de iOS
+extern "C" void ios_file_picked(void *which, const char *path) {
+    const char *files[2] = {path, NULL};
+    picked(which, files, 1);
+}
+#endif
+
 static void SDLCALL picked(void *which, const char *const *files, int) {
     if (!files || !files[0]) return;
     pthread_mutex_lock(&g_lock);
@@ -1031,7 +1105,11 @@ extern "C" void launcher_run(const char *root) {
 
             ImVec2 ds = io.DisplaySize;
             float s = ds.y / 720.0f;  // layout scale (fonts are built for ~2x)
+#ifdef PLATFORM_IOS
+            ImGui::GetIO().FontGlobalScale = s * 1.0f;  // iOS: texto más grande y legible
+#else
             ImGui::GetIO().FontGlobalScale = s * 0.5f;
+#endif
             ImDrawList *bg = ImGui::GetBackgroundDrawList();
             if (g_bg) {  // cover the window, keep the aspect
                 float ia = (float)g_bg_w / g_bg_h, wa = ds.x / ds.y;
@@ -1316,12 +1394,20 @@ extern "C" void launcher_run(const char *root) {
                     opt_section("Your dump of the game");
                     if (busy) opt_disable_next();
                     if (opt_action("Game dump", dump_v.c_str(), dump_d.c_str(), true))
+#ifdef PLATFORM_IOS
+                        ios_show_file_picker((void *)1, "xci;nsp");
+#else
                         SDL_ShowOpenFileDialog(picked, (void *)1, win, (const SDL_DialogFileFilter[]){{"Switch game dump", "xci;nsp"}}, 1, NULL, false);
+#endif
                     check_left_of_value(dump_v);
                     first_row();
                     if (busy) opt_disable_next();
                     if (opt_action("Keys", keys_v.c_str(), keys_d.c_str(), true))
+#ifdef PLATFORM_IOS
+                        ios_show_file_picker((void *)2, "keys;txt");
+#else
                         SDL_ShowOpenFileDialog(picked, (void *)2, win, (const SDL_DialogFileFilter[]){{"Keys", "keys;txt"}}, 1, NULL, false);
+#endif
                     check_left_of_value(keys_v);
                     opt_section("Set up");
                     if (busy || dump.empty() || keys.empty()) opt_disable_next();
