@@ -314,6 +314,31 @@ static void *extract_thread(void *) {
     pthread_mutex_lock(&g_lock);
     dump = g_dump, keys = g_keys;
     pthread_mutex_unlock(&g_lock);
+    
+    // Validar que los archivos existen y son legibles antes de extraer
+    struct stat st;
+    if (stat(dump.c_str(), &st) != 0) {
+        set_job("No se encontró el archivo del juego", true, 
+                "El archivo seleccionado no existe. Vuelve a seleccionarlo.");
+        goto done;
+    }
+    if (st.st_size < 1000000000) {  // Menos de 1GB es sospechoso para un NSP de Zelda
+        char msg[256];
+        snprintf(msg, sizeof(msg), "El archivo del juego parece incompleto (%.1f MB). Debe ser ~6 GB. Espera a que termine de copiarse y vuelve a intentarlo.", st.st_size / 1000000.0);
+        set_job(msg, true, "Si acabas de seleccionarlo, espera 5-10 minutos a que iOS termine de copiarlo.");
+        goto done;
+    }
+    if (stat(keys.c_str(), &st) != 0) {
+        set_job("No se encontró el archivo de keys", true,
+                "El archivo prod.keys no existe. Vuelve a seleccionarlo.");
+        goto done;
+    }
+    if (st.st_size < 100) {
+        set_job("El archivo de keys parece vacío o incompleto", true,
+                "Asegúrate de seleccionar tu prod.keys real de la Switch.");
+        goto done;
+    }
+    
     char hpath[1024];
     std::string hactool = rt_resource("hactool" PLAT_EXE_SUFFIX, "tools/hactool/hactool" PLAT_EXE_SUFFIX, hpath, sizeof hpath)
                               ? hpath : "tools/hactool/hactool" PLAT_EXE_SUFFIX;
