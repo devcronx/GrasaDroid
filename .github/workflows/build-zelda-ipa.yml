@@ -31,3 +31,10 @@ jobs:
         with:
           name: zelda-ios-build-log
           path: zelda-ios/build-ios/
+
+      - name: Upload IPA
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LASRecomp-IPA
+          path: zelda-ios/build-ios/LASRecomp.ipa

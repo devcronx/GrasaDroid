@@ -119,4 +119,93 @@ if [ "$FAILED" = "1" ]; then
 fi
 
 echo ""
+echo "=== Linkeando ejecutable ==="
+
+# 4. Linkear todo en un ejecutable
+APP_NAME="LASRecomp"
+OBJS=$(find "$OBJ_DIR" -name "*.o")
+LINK_FLAGS="-framework Foundation -framework Metal -framework MetalFX -framework QuartzCore -framework UIKit -framework CoreGraphics"
+
+$CC -o "$BUILD_DIR/$APP_NAME" $OBJS "$SDL_BUILD/libSDL3.a" $LINK_FLAGS 2>> "$BUILD_DIR/errors.log" || {
+    echo "ERROR en linkeo (ver errors.log)"
+    grep -E "error:" "$BUILD_DIR/errors.log" | head -20
+    exit 1
+}
+
+echo "[Link] OK: $BUILD_DIR/$APP_NAME"
+
+# 5. Crear .app bundle
+echo "[App] Creando bundle..."
+APP_BUNDLE="$BUILD_DIR/Payload/$APP_NAME.app"
+mkdir -p "$APP_BUNDLE"
+cp "$BUILD_DIR/$APP_NAME" "$APP_BUNDLE/"
+
+# Info.plist
+cat > "$APP_BUNDLE/Info.plist" << 'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>LASRecomp</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.zelda.lasrecomp</string>
+    <key>CFBundleName</key>
+    <string>LASRecomp</string>
+    <key>CFBundleDisplayName</key>
+    <string>Zelda LA</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>arm64</string>
+        <string>metal</string>
+    </array>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>CFBundleIcons</key>
+    <dict>
+        <key>CFBundlePrimaryIcon</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>Icon</string>
+            </array>
+        </dict>
+    </dict>
+</dict>
+</plist>
+PLIST
+
+# Iconos
+cp "$ZELDA_DIR/icon/Icon-1024.png" "$APP_BUNDLE/Icon-1024.png"
+cp "$ZELDA_DIR/icon/Icon-180.png" "$APP_BUNDLE/Icon-180.png"
+# iOS busca Icon.png, Icon@2x.png, etc. - crear enlaces
+cp "$ZELDA_DIR/icon/Icon-180.png" "$APP_BUNDLE/Icon.png"
+
+# Firmar con identidad ad-hoc (para sideload)
+echo "[App] Firmando (ad-hoc)..."
+codesign --force --deep --sign - "$APP_BUNDLE" 2>> "$BUILD_DIR/errors.log" || {
+    echo "Advertencia: codesign falló, continuando sin firma"
+}
+
+# 6. Crear .ipa
+echo "[IPA] Empaquetando..."
+cd "$BUILD_DIR"
+zip -qr "LASRecomp.ipa" "Payload"
+cd "$SCRIPT_DIR"
+
+echo ""
 echo "=== Build iOS completado ==="
+echo "IPA: $BUILD_DIR/LASRecomp.ipa"
