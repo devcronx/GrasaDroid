@@ -423,19 +423,18 @@ static IOSFilePickerDelegate *g_picker_delegate = nil;
 
 void ios_show_file_picker(void *which, const char *extensions) {
     dispatch_async(dispatch_get_main_queue(), ^{
-        // Para NSP/XCI/KEYS usar UTTypeData genérico que siempre funciona
-        NSArray<UTType *> *types = @[UTTypeData];
+        // Usar document types como strings (más compatible)
+        NSArray *docTypes = @[@"public.data"];
         
-        UIDocumentPickerViewController *picker = [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:types asCopy:YES];
+        UIDocumentPickerViewController *picker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:docTypes inMode:UIDocumentPickerModeOpen];
         picker.allowsMultipleSelection = NO;
         
-        // Retener el delegate fuertemente
-        static IOSFilePickerDelegate *strongDelegate = nil;
-        if (!strongDelegate) strongDelegate = [[IOSFilePickerDelegate alloc] init];
-        strongDelegate.which = which;
-        picker.delegate = strongDelegate;
-        // Guardar referencia para que no se libere
-        objc_setAssociatedObject(picker, "delegate", strongDelegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        // Crear un delegate nuevo cada vez para evitar race conditions
+        IOSFilePickerDelegate *delegate = [[IOSFilePickerDelegate alloc] init];
+        delegate.which = which;
+        picker.delegate = delegate;
+        // Retener el delegate con el picker
+        objc_setAssociatedObject(picker, "delegate", delegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         
         // Obtener el view controller de forma compatible con iOS 13+
         UIViewController *rootVC = nil;
@@ -1155,7 +1154,7 @@ extern "C" void launcher_run(const char *root) {
             ImVec2 ds = io.DisplaySize;
             float s = ds.y / 720.0f;  // layout scale (fonts are built for ~2x)
 #ifdef PLATFORM_IOS
-            ImGui::GetIO().FontGlobalScale = s * 1.5f;  // iOS: texto mucho más grande y legible
+            ImGui::GetIO().FontGlobalScale = s * 2.0f;  // iOS: texto muy grande
 #else
             ImGui::GetIO().FontGlobalScale = s * 0.5f;
 #endif
