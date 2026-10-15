@@ -559,6 +559,44 @@ void ios_file_picked(void *which, const char *path) {
     const char *files[2] = {path, NULL};
     picked(which, files, 1);
 }
+
+// Share the extracted main binary (for server-side recompilation)
+void ios_share_main_file(const char *root) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        std::string mainPath = std::string(root) + "/exefs/main";
+        NSURL *fileURL = [NSURL fileURLWithPath:[NSString stringWithUTF8String:mainPath.c_str()]];
+        if (![[NSFileManager defaultManager] fileExistsAtPath:fileURL.path]) return;
+        
+        UIActivityViewController *activityVC = [[UIActivityViewController alloc] initWithActivityItems:@[fileURL] applicationActivities:nil];
+        
+        UIViewController *rootVC = nil;
+        for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+            if ([scene isKindOfClass:[UIWindowScene class]]) {
+                UIWindowScene *windowScene = (UIWindowScene *)scene;
+                for (UIWindow *window in windowScene.windows) {
+                    if (window.isKeyWindow) {
+                        rootVC = window.rootViewController;
+                        break;
+                    }
+                }
+                if (rootVC) break;
+            }
+        }
+        if (!rootVC) {
+            rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
+        }
+        UIViewController *presentVC = rootVC;
+        while (presentVC.presentedViewController) presentVC = presentVC.presentedViewController;
+        
+        // iPad: needs a source view
+        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+            activityVC.popoverPresentationController.sourceView = presentVC.view;
+            activityVC.popoverPresentationController.sourceRect = CGRectMake(presentVC.view.bounds.size.width/2, presentVC.view.bounds.size.height/2, 0, 0);
+            activityVC.popoverPresentationController.permittedArrowDirections = 0;
+        }
+        [presentVC presentViewController:activityVC animated:YES completion:nil];
+    });
+}
 #endif
 
 static void SDLCALL picked(void *which, const char *const *files, int) {
@@ -1019,6 +1057,10 @@ static void prelaunch_tab(float sc) {
     if (ImGui::Button("Show in Explorer")) reveal_folder(g_root);
 #elif defined(__linux__)
     if (ImGui::Button("Open folder")) reveal_folder(g_root);
+#elif defined(PLATFORM_IOS)
+    if (ImGui::Button("Export main file")) ios_share_main_file(g_root.c_str());
+    ImGui::SameLine();
+    if (ImGui::Button("Show in Files")) reveal_folder(g_root);
 #else
     if (ImGui::Button("Show in Finder")) reveal_folder(g_root);
 #endif
