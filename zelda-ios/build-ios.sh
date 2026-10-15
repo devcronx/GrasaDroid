@@ -93,3 +93,29 @@ fi
 
 echo ""
 echo "=== Runtime C compilado ==="
+
+# 3. Compilar backend Metal (.m) para iOS
+echo "[Metal] Compilando backend Metal..."
+METAL_SRCS="$ZELDA_DIR/runtime/nvn/metal.m $ZELDA_DIR/runtime/nvn/renderer.m"
+OBJC_FLAGS="-fobjc-arc -framework Foundation -framework Metal -framework MetalFX -framework QuartzCore"
+
+for src in $METAL_SRCS; do
+    rel=$(echo "$src" | sed "s|$ZELDA_DIR/||")
+    obj="$OBJ_DIR/${rel%.m}.o"
+    mkdir -p "$(dirname "$obj")"
+    echo "  - $rel"
+    if ! $CC $CFLAGS $OBJC_FLAGS -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
+        echo "    ERROR en $rel (ver errors.log)"
+        FAILED=1
+    fi
+done
+
+if [ "$FAILED" = "1" ]; then
+    echo ""
+    echo "=== ERRORES DE COMPILACIÓN (Metal) ==="
+    grep -E "error:" "$BUILD_DIR/errors.log" | head -30
+    exit 1
+fi
+
+echo ""
+echo "=== Build iOS completado ==="
