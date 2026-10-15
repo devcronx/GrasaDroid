@@ -48,7 +48,6 @@ static struct {
 void ios_touch_init(void) {
     SDL_VirtualJoystickDesc desc;
     SDL_zero(desc);
-    desc.version = SDL_VIRTUAL_JOYSTICK_DESC_VERSION;
     desc.type = SDL_JOYSTICK_TYPE_GAMEPAD;
     desc.naxes = 2;  // left stick X/Y
     desc.nbuttons = SDL_GAMEPAD_BUTTON_COUNT;
