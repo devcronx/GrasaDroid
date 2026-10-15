@@ -194,14 +194,30 @@ fi
 HACTOOL_BIN="$BUILD_DIR/hactool-ios"
 if [ ! -f "$HACTOOL_BIN" ]; then
     cd "$HACTOOL_DIR"
-    # Compilar mbedtls primero
-    if [ ! -f "mbedtls/library/libmbedtls.a" ]; then
-        echo "[hactool] Compilando mbedtls..."
-        # mbedtls necesita ser compilado con flags de iOS
-        MBEDTLS_CFLAGS="-arch arm64 -mios-version-min=17.0 -isysroot $SDK -O2"
-        make -C mbedtls lib CC="xcrun -sdk iphoneos clang" CFLAGS="$MBEDTLS_CFLAGS" 2>> "$BUILD_DIR/errors.log" || {
-            echo "Advertencia: mbedtls falló, intentando sin flags especiales"
+    # Compilar mbedtls con CMake para iOS
+    if [ ! -f "mbedtls/build-ios/libmbedtls.a" ]; then
+        echo "[hactool] Compilando mbedtls con CMake..."
+        mkdir -p mbedtls/build-ios
+        cd mbedtls/build-ios
+        cmake .. \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_SYSROOT="$SDK" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DENABLE_TESTING=OFF \
+            -DENABLE_PROGRAMS=OFF 2>> "$BUILD_DIR/errors.log" || {
+            echo "Advertencia: cmake mbedtls falló"
         }
+        cmake --build . -j$(sysctl -n hw.ncpu) 2>> "$BUILD_DIR/errors.log" || {
+            echo "Advertencia: build mbedtls falló"
+        }
+        cd "$HACTOOL_DIR"
+    fi
+    MBEDTLS_LIB_DIR="$HACTOOL_DIR/mbedtls/build-ios/library"
+    if [ ! -f "$MBEDTLS_LIB_DIR/libmbedtls.a" ]; then
+        # Fallback: buscar en la ubicación del Makefile
+        MBEDTLS_LIB_DIR="$HACTOOL_DIR/mbedtls/library"
     fi
     echo "[hactool] Compilando fuentes..."
     HACTOOL_SRCS="save.c sha.c aes.c extkeys.c rsa.c npdm.c bktr.c kip.c packages.c pki.c pfs0.c hfs0.c nca0_romfs.c romfs.c utils.c nax0.c nso.c lz4.c nca.c xci.c main.c filepath.c ConvertUTF.c cJSON.c"
@@ -219,7 +235,7 @@ if [ ! -f "$HACTOOL_BIN" ]; then
         fi
         HACTOOL_OBJS="$HACTOOL_OBJS $obj"
     done
-    xcrun -sdk iphoneos clang -arch arm64 -mios-version-min=17.0 -isysroot "$SDK" -o "$HACTOOL_BIN" $HACTOOL_OBJS -L./mbedtls/library -lmbedtls -lmbedx509 -lmbedcrypto 2>> "$BUILD_DIR/errors.log" || {
+    xcrun -sdk iphoneos clang -arch arm64 -mios-version-min=17.0 -isysroot "$SDK" -o "$HACTOOL_BIN" $HACTOOL_OBJS -L"$MBEDTLS_LIB_DIR" -lmbedtls -lmbedx509 -lmbedcrypto 2>> "$BUILD_DIR/errors.log" || {
         echo "ERROR linkeando hactool"
         grep -E "error:" "$BUILD_DIR/errors.log" | head -10
         exit 1
