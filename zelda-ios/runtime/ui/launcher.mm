@@ -382,45 +382,24 @@ extern "C" void ios_file_picked(void *which, const char *path);
 @end
 @implementation IOSFilePickerDelegate
 - (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
-    NSLog(@"[LASRecomp] didPickDocumentsAtURLs llamado con %lu URLs", (unsigned long)urls.count);
+    NSLog(@"[LASRecomp] didPickDocumentsAtURLs: %lu URLs", (unsigned long)urls.count);
     if (urls.count > 0) {
         NSURL *url = urls[0];
-        NSLog(@"[LASRecomp] URL seleccionada: %@", url);
-        NSString *fileName = url.lastPathComponent;
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-        NSString *docsDir = paths[0];
-        NSString *destPath = [docsDir stringByAppendingPathComponent:fileName];
-        NSLog(@"[LASRecomp] Destino: %@", destPath);
-        
-        // FEEDBACK INMEDIATO
-        static char immediatePath[4096];
-        strncpy(immediatePath, [destPath UTF8String], sizeof(immediatePath) - 1);
-        immediatePath[sizeof(immediatePath) - 1] = '\0';
+        NSLog(@"[LASRecomp] Archivo importado: %@", url.path);
+        // En modo Import, iOS ya copió el archivo a Documents/Inbox
+        // Usar la ruta directamente
+        static char pathBuffer[4096];
+        strncpy(pathBuffer, [url.path UTF8String], sizeof(pathBuffer) - 1);
+        pathBuffer[sizeof(pathBuffer) - 1] = '\0';
         void *whichCopy = self.which;
         dispatch_async(dispatch_get_main_queue(), ^{
-            NSLog(@"[LASRecomp] Llamando ios_file_picked");
-            ios_file_picked(whichCopy, immediatePath);
+            NSLog(@"[LASRecomp] Llamando ios_file_picked con: %s", pathBuffer);
+            ios_file_picked(whichCopy, pathBuffer);
         });
-        
-        // Copiar en background
-        BOOL accessed = [url startAccessingSecurityScopedResource];
-        NSLog(@"[LASRecomp] Security scoped access: %d", accessed);
-        if (accessed) {
-            NSFileManager *fm = [NSFileManager defaultManager];
-            if ([fm fileExistsAtPath:destPath]) [fm removeItemAtPath:destPath error:nil];
-            NSString *destCopy = [destPath copy];
-            NSURL *urlCopy = [url copy];
-            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                NSError *copyError = nil;
-                BOOL ok = [fm copyItemAtURL:urlCopy toURL:[NSURL fileURLWithPath:destCopy] error:&copyError];
-                NSLog(@"[LASRecomp] Copia completada: %d, error: %@", ok, copyError);
-                [urlCopy stopAccessingSecurityScopedResource];
-            });
-        }
     }
 }
 - (void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller {
-    NSLog(@"[LASRecomp] Picker cancelado por el usuario");
+    NSLog(@"[LASRecomp] Picker cancelado");
 }
 @end
 
@@ -429,7 +408,7 @@ static IOSFilePickerDelegate *g_picker_delegate = nil;
 void ios_show_file_picker(void *which, const char *extensions) {
     dispatch_async(dispatch_get_main_queue(), ^{
         NSArray *docTypes = @[@"public.data"];
-        UIDocumentPickerViewController *picker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:docTypes inMode:UIDocumentPickerModeOpen];
+        UIDocumentPickerViewController *picker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:docTypes inMode:UIDocumentPickerModeImport];
         picker.allowsMultipleSelection = NO;
         
         IOSFilePickerDelegate *delegate = [[IOSFilePickerDelegate alloc] init];
