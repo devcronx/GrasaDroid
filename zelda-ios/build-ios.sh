@@ -185,6 +185,49 @@ $CC -o "$BUILD_DIR/$APP_NAME" $OBJS "$SDL_BUILD/libSDL3.a" $LINK_FLAGS 2>> "$BUI
 
 echo "[Link] OK: $BUILD_DIR/$APP_NAME"
 
+# 4.5. Compilar hactool para iOS (necesario para extraer el NSP/XCI)
+echo "[hactool] Compilando para iOS..."
+HACTOOL_DIR="$BUILD_DIR/hactool"
+if [ ! -d "$HACTOOL_DIR" ]; then
+    git clone --depth 1 https://github.com/SciresM/hactool.git "$HACTOOL_DIR"
+fi
+HACTOOL_BIN="$BUILD_DIR/hactool-ios"
+if [ ! -f "$HACTOOL_BIN" ]; then
+    cd "$HACTOOL_DIR"
+    # Compilar mbedtls primero
+    if [ ! -f "mbedtls/library/libmbedtls.a" ]; then
+        echo "[hactool] Compilando mbedtls..."
+        # mbedtls necesita ser compilado con flags de iOS
+        MBEDTLS_CFLAGS="-arch arm64 -mios-version-min=17.0 -isysroot $SDK -O2"
+        make -C mbedtls lib CC="xcrun -sdk iphoneos clang" CFLAGS="$MBEDTLS_CFLAGS" 2>> "$BUILD_DIR/errors.log" || {
+            echo "Advertencia: mbedtls falló, intentando sin flags especiales"
+        }
+    fi
+    echo "[hactool] Compilando fuentes..."
+    HACTOOL_SRCS="save.c sha.c aes.c extkeys.c rsa.c npdm.c bktr.c kip.c packages.c pki.c pfs0.c hfs0.c nca0_romfs.c romfs.c utils.c nax0.c nso.c lz4.c nca.c xci.c main.c filepath.c ConvertUTF.c cJSON.c"
+    HACTOOL_CFLAGS="-arch arm64 -mios-version-min=17.0 -isysroot $SDK -O2 -I./mbedtls/include -D_BSD_SOURCE -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200112L -D_DEFAULT_SOURCE -D_FILE_OFFSET_BITS=64"
+    HACTOOL_OBJS=""
+    for src in $HACTOOL_SRCS; do
+        obj="$BUILD_DIR/hactool-obj/$(basename $src .c).o"
+        mkdir -p "$BUILD_DIR/hactool-obj"
+        if [ ! -f "$obj" ] || [ "$src" -nt "$obj" ]; then
+            xcrun -sdk iphoneos clang $HACTOOL_CFLAGS -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log" || {
+                echo "ERROR compilando hactool: $src"
+                grep -E "error:" "$BUILD_DIR/errors.log" | head -10
+                exit 1
+            }
+        fi
+        HACTOOL_OBJS="$HACTOOL_OBJS $obj"
+    done
+    xcrun -sdk iphoneos clang -arch arm64 -mios-version-min=17.0 -isysroot "$SDK" -o "$HACTOOL_BIN" $HACTOOL_OBJS -L./mbedtls/library -lmbedtls -lmbedx509 -lmbedcrypto 2>> "$BUILD_DIR/errors.log" || {
+        echo "ERROR linkeando hactool"
+        grep -E "error:" "$BUILD_DIR/errors.log" | head -10
+        exit 1
+    }
+    cd "$SCRIPT_DIR"
+fi
+echo "[hactool] OK: $HACTOOL_BIN"
+
 # 5. Crear .app bundle
 echo "[App] Creando bundle..."
 APP_BUNDLE="$BUILD_DIR/Payload/$APP_NAME.app"
@@ -251,6 +294,11 @@ if [ -f "$ZELDA_DIR/assets/la-bg.webp" ]; then
 elif [ -f "$ZELDA_DIR/assets/la-bg.png" ]; then
     cp "$ZELDA_DIR/assets/la-bg.png" "$APP_BUNDLE/la-bg.png"
 fi
+
+# hactool para extraer el NSP/XCI (va en tools/hactool/ como espera rt_resource)
+mkdir -p "$APP_BUNDLE/tools/hactool"
+cp "$HACTOOL_BIN" "$APP_BUNDLE/tools/hactool/hactool"
+chmod +x "$APP_BUNDLE/tools/hactool/hactool"
 
 # Firmar con identidad ad-hoc (para sideload)
 echo "[App] Firmando (ad-hoc)..."
