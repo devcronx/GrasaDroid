@@ -42,7 +42,7 @@ echo "[SDL3] OK: $SDL_BUILD/libSDL3.a"
 echo "[Runtime] Compilando fuentes..."
 
 CC="xcrun -sdk iphoneos clang -arch arm64 -mios-version-min=17.0 -isysroot $SDK"
-CFLAGS="-O2 -I$ZELDA_DIR/runtime -I$SDL_DIR/include -DPLATFORM_IOS"
+CFLAGS="-O2 -I$ZELDA_DIR/runtime -I$ZELDA_DIR/third_party/smaa/Textures -I$SDL_DIR/include -DPLATFORM_IOS"
 
 OBJ_DIR="$BUILD_DIR/obj"
 mkdir -p "$OBJ_DIR"
@@ -51,9 +51,12 @@ mkdir -p "$OBJ_DIR"
 echo "  - platform/ios.c"
 $CC $CFLAGS -c "$ZELDA_DIR/runtime/platform/ios.c" -o "$OBJ_DIR/ios.o"
 
-# Compilar todo el runtime C
+# Compilar todo el runtime C (excluyendo Vulkan, FFmpeg/movie.c)
 echo "[Runtime] Compilando todas las fuentes C..."
-RT_SRCS=$(find "$ZELDA_DIR/runtime" -name "*.c" -not -path "*/platform/*")
+RT_SRCS=$(find "$ZELDA_DIR/runtime" -name "*.c" \
+    -not -path "*/platform/*" \
+    -not -path "*/vulkan/*" \
+    -not -name "movie.c")
 RT_SRCS="$RT_SRCS $ZELDA_DIR/runtime/platform/ios.c"
 # nogen_stub si no hay código generado
 if [ ! -d "$ZELDA_DIR/generated" ]; then
