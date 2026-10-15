@@ -204,7 +204,7 @@ if [ ! -f "$HACTOOL_BIN" ]; then
         if [ ! -f "$obj" ]; then
             xcrun -sdk iphoneos clang -arch arm64 -mios-version-min=17.0 -isysroot "$SDK" -O2 \
                 -I./mbedtls/include -D_BSD_SOURCE -D_POSIX_SOURCE \
-                -Wno-implicit-function-declaration \
+                -include stdio.h -include stdlib.h -include string.h \
                 -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log" || {
                 echo "Advertencia: falló $src, continuando"
             }
