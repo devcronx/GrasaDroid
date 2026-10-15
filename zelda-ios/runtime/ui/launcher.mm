@@ -192,6 +192,10 @@ static std::string g_job;           // current extraction step / result for the 
 static std::string g_job_hint;      // a failure: what to do about it (shown under it)
 static bool g_busy, g_job_failed;
 static bool g_confirm_delete;       // game-files page: "Delete the extracted game files?" shown
+#ifdef PLATFORM_IOS
+static float g_copy_progress = -1;  // 0.0-1.0 durante copia de archivo, -1 si no hay copia activa
+static std::string g_copy_name;     // nombre del archivo que se está copiando
+#endif
 
 static void set_job(const std::string &s, bool failed = false, const std::string &hint = "") {
     pthread_mutex_lock(&g_lock);
@@ -392,9 +396,19 @@ extern "C" void ios_file_picked(void *which, const char *path);
         strncpy(pathBuffer, [url.path UTF8String], sizeof(pathBuffer) - 1);
         pathBuffer[sizeof(pathBuffer) - 1] = '\0';
         void *whichCopy = self.which;
+        // Marcar copia como completa (iOS ya lo hizo)
+        pthread_mutex_lock(&g_lock);
+        g_copy_progress = 1.0f;
+        pthread_mutex_unlock(&g_lock);
         dispatch_async(dispatch_get_main_queue(), ^{
             NSLog(@"[LASRecomp] Llamando ios_file_picked con: %s", pathBuffer);
             ios_file_picked(whichCopy, pathBuffer);
+            // Limpiar progreso después de un momento
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                pthread_mutex_lock(&g_lock);
+                g_copy_progress = -1;
+                pthread_mutex_unlock(&g_lock);
+            });
         });
     }
 }
