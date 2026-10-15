@@ -51,10 +51,33 @@ mkdir -p "$OBJ_DIR"
 echo "  - platform/ios.c"
 $CC $CFLAGS -c "$ZELDA_DIR/runtime/platform/ios.c" -o "$OBJ_DIR/ios.o"
 
-# TODO: Compilar resto del runtime
-# Esto requiere adaptar el Makefile completo para iOS
+# Compilar todo el runtime C
+echo "[Runtime] Compilando todas las fuentes C..."
+RT_SRCS=$(find "$ZELDA_DIR/runtime" -name "*.c" -not -path "*/platform/*")
+RT_SRCS="$RT_SRCS $ZELDA_DIR/runtime/platform/ios.c"
+# nogen_stub si no hay código generado
+if [ ! -d "$ZELDA_DIR/generated" ]; then
+    RT_SRCS="$RT_SRCS $ZELDA_DIR/tools/nogen_stub.c"
+fi
+
+FAILED=0
+for src in $RT_SRCS; do
+    rel=$(echo "$src" | sed "s|$ZELDA_DIR/||")
+    obj="$OBJ_DIR/${rel%.c}.o"
+    mkdir -p "$(dirname "$obj")"
+    echo "  - $rel"
+    if ! $CC $CFLAGS -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
+        echo "    ERROR en $rel (ver errors.log)"
+        FAILED=1
+    fi
+done
+
+if [ "$FAILED" = "1" ]; then
+    echo ""
+    echo "=== ERRORES DE COMPILACIÓN ==="
+    grep -E "error:" "$BUILD_DIR/errors.log" | head -30
+    exit 1
+fi
 
 echo ""
-echo "=== Build base completado ==="
-echo "NOTA: Build completo del runtime pendiente - requiere adaptación del Makefile"
-echo "para iOS (Metal backend, sin FFmpeg, paths iOS)."
+echo "=== Runtime C compilado ==="
