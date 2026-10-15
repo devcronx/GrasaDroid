@@ -91,6 +91,35 @@ fi
 echo ""
 echo "=== Runtime C compilado ==="
 
+# 2b. Compilar código del juego recompilado (si existe)
+GAME_CODE_TAR="$ZELDA_DIR/game-code/recomp-game.tar.gz"
+if [ -f "$GAME_CODE_TAR" ]; then
+    echo "[GameCode] Extrayendo código recompilado..."
+    GAME_CODE_DIR="$BUILD_DIR/game-code"
+    mkdir -p "$GAME_CODE_DIR"
+    tar -xzf "$GAME_CODE_TAR" -C "$GAME_CODE_DIR"
+    
+    echo "[GameCode] Compilando código del juego (esto tarda)..."
+    GAME_OBJS=""
+    for src in "$GAME_CODE_DIR"/main_*.c; do
+        obj="$OBJ_DIR/game-code/$(basename "${src%.c}.o")"
+        mkdir -p "$(dirname "$obj")"
+        if ! $CC $CFLAGS -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
+            echo "    ERROR en $(basename $src) (ver errors.log)"
+            FAILED=1
+        fi
+    done
+    if [ "$FAILED" = "1" ]; then
+        echo ""
+        echo "=== ERRORES EN CÓDIGO DEL JUEGO ==="
+        grep -E "error:" "$BUILD_DIR/errors.log" | head -30
+        exit 1
+    fi
+    echo "[GameCode] OK: código del juego compilado"
+else
+    echo "[GameCode] No hay código recompilado (game-code/recomp-game.tar.gz no existe)"
+fi
+
 # 3. Compilar backend Metal (.m) para iOS
 echo "[Metal] Compilando backend Metal..."
 METAL_SRCS="$ZELDA_DIR/runtime/nvn/metal.m $ZELDA_DIR/runtime/nvn/renderer.m"
