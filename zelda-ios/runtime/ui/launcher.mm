@@ -427,10 +427,6 @@ extern "C" void ios_file_picked(void *which, const char *path);
 static IOSFilePickerDelegate *g_picker_delegate = nil;
 
 void ios_show_file_picker(void *which, const char *extensions) {
-    // Obtener la ventana SDL global
-    extern SDL_Window *g_launcher_win;
-    SDL_Window *win = g_launcher_win;
-    
     dispatch_async(dispatch_get_main_queue(), ^{
         NSArray *docTypes = @[@"public.data"];
         UIDocumentPickerViewController *picker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:docTypes inMode:UIDocumentPickerModeOpen];
@@ -441,29 +437,18 @@ void ios_show_file_picker(void *which, const char *extensions) {
         picker.delegate = delegate;
         objc_setAssociatedObject(picker, "delegate", delegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         
-        // Obtener el UIViewController desde la ventana SDL
+        // Obtener el UIViewController - buscar en las escenas
         UIViewController *rootVC = nil;
-        if (win) {
-            SDL_PropertiesID props = SDL_GetWindowProperties(win);
-            // En iOS, SDL guarda el UIViewController en las propiedades
-            NSNumber *vcPtr = (__bridge NSNumber *)SDL_GetPointerProperty(props, "SDL.window.ios.viewcontroller", NULL);
-            if (vcPtr) {
-                rootVC = (__bridge UIViewController *)(void *)[vcPtr unsignedLongLongValue];
-            }
-        }
-        // Fallback: buscar en las escenas
-        if (!rootVC) {
-            for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
-                if ([scene isKindOfClass:[UIWindowScene class]]) {
-                    UIWindowScene *windowScene = (UIWindowScene *)scene;
-                    for (UIWindow *window in windowScene.windows) {
-                        if (window.isKeyWindow) {
-                            rootVC = window.rootViewController;
-                            break;
-                        }
+        for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+            if ([scene isKindOfClass:[UIWindowScene class]]) {
+                UIWindowScene *windowScene = (UIWindowScene *)scene;
+                for (UIWindow *window in windowScene.windows) {
+                    if (window.isKeyWindow) {
+                        rootVC = window.rootViewController;
+                        break;
                     }
-                    if (rootVC) break;
                 }
+                if (rootVC) break;
             }
         }
         if (!rootVC) {
