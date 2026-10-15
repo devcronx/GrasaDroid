@@ -124,11 +124,13 @@ echo "=== Linkeando ejecutable ==="
 # 3b. Compilar UI (.mm) e ImGui para iOS
 echo "[UI] Compilando interfaz y trucos..."
 CXX="xcrun -sdk iphoneos clang++ -arch arm64 -mios-version-min=17.0 -isysroot $SDK"
-CXXFLAGS="-O2 -std=c++17 -I$ZELDA_DIR/runtime -I$ZELDA_DIR/third_party/imgui -I$ZELDA_DIR/third_party/smaa/Textures -I$SDL_DIR/include -DPLATFORM_IOS -DIMGUI_IMPL_METAL_CPP"
+CXXFLAGS="-O2 -std=c++17 -I$ZELDA_DIR/runtime -I$ZELDA_DIR/third_party/imgui -I$ZELDA_DIR/third_party/smaa/Textures -I$SDL_DIR/include -DPLATFORM_IOS"
 
 IMGUI_DIR="$ZELDA_DIR/third_party/imgui"
 IMGUI_SRCS="$IMGUI_DIR/imgui.cpp $IMGUI_DIR/imgui_draw.cpp $IMGUI_DIR/imgui_tables.cpp $IMGUI_DIR/imgui_widgets.cpp $IMGUI_DIR/backends/imgui_impl_sdl3.cpp"
 IMGUI_MM="$IMGUI_DIR/backends/imgui_impl_metal.mm"
+# ImGui necesita los headers de backends para imgui_impl_metal.h
+CXXFLAGS="$CXXFLAGS -I$IMGUI_DIR/backends"
 
 for src in $IMGUI_SRCS; do
     rel=$(echo "$src" | sed "s|$ZELDA_DIR/||")
