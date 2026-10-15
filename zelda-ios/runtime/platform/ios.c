@@ -18,7 +18,13 @@
 
 static mach_timebase_info_data_t tb;
 
-void plat_init(void) {}
+void ios_touch_init(void);
+
+void plat_init(void) {
+#ifdef PLATFORM_IOS
+    ios_touch_init();
+#endif
+}
 
 bool plat_reserve_guest(uint64_t lo, uint64_t hi) {
     // iOS: usar mmap con MAP_FIXED en lugar de mach_vm_allocate

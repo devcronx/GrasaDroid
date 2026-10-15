@@ -138,6 +138,11 @@ int input_pad_family(void) {
 
 void input_handle_event(const SDL_Event *e) {
     static bool scanned;  // pads present at startup: their ADDED event may have gone to the start screen's loop
+#ifdef PLATFORM_IOS
+    // Controles táctiles iOS: consumir eventos de dedo antes que nada
+    extern bool ios_touch_handle_event(const SDL_Event *e);
+    if (ios_touch_handle_event(e)) return;
+#endif
     if (!scanned) {
         scanned = true;
         int n = 0;

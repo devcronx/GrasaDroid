@@ -67,6 +67,7 @@ RT_SRCS=$(find "$ZELDA_DIR/runtime" -name "*.c" \
     -not -path "*/vulkan/*" \
     -not -name "movie.c")
 RT_SRCS="$RT_SRCS $ZELDA_DIR/runtime/platform/ios.c"
+RT_SRCS="$RT_SRCS $ZELDA_DIR/runtime/platform/ios_touch.c"
 # nogen_stub si no hay código generado
 if [ ! -d "$ZELDA_DIR/generated" ]; then
     RT_SRCS="$RT_SRCS $ZELDA_DIR/tools/nogen_stub.c"
