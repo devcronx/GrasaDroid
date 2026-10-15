@@ -12,6 +12,11 @@
 
 #define MAIN_BASE 0x7000000000ull
 
+#ifdef PLATFORM_IOS
+// Stub para código generado ausente (solo se usa en logging de debug)
+void f_7000ded9f0(void *c) { (void)c; }
+#endif
+
 // 360-degree movement: main+0xded9f0 (tools/patches.py SNAP_DIR_SITE) turns the stick vector (s1 = x, s2 = y) into
 // one of 8 directions, returned in w0 as an angle (full turn = 2^32, 0 = down, 2^30 = right). With the setting on
 // it returns the stick's own angle (returns 1: the original function is skipped).

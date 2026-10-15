@@ -179,7 +179,7 @@ echo "[UI] OK"
 APP_NAME="LASRecomp"
 OBJS=$(find "$OBJ_DIR" -name "*.o")
 # Frameworks que SDL3 necesita en iOS (audio, video, bluetooth, sensores, etc.)
-LINK_FLAGS="-framework Foundation -framework Metal -framework MetalFX -framework QuartzCore -framework UIKit -framework CoreGraphics -framework AVFoundation -framework AudioToolbox -framework CoreBluetooth -framework ImageIO -framework OpenGLES -framework CoreVideo -framework CoreMedia -framework Security -framework GameController -framework CoreMotion -framework CoreHaptics -lc++"
+LINK_FLAGS="-framework Foundation -framework Metal -framework MetalFX -framework QuartzCore -framework UIKit -framework CoreGraphics -framework AVFoundation -framework AudioToolbox -framework CoreBluetooth -framework ImageIO -framework OpenGLES -framework CoreVideo -framework CoreMedia -framework Security -framework GameController -framework CoreMotion -framework CoreHaptics -framework UserNotifications -framework UniformTypeIdentifiers -lc++"
 
 $CC -o "$BUILD_DIR/$APP_NAME" $OBJS "$SDL_BUILD/libSDL3.a" $LINK_FLAGS 2>> "$BUILD_DIR/errors.log" || {
     echo "ERROR en linkeo (ver errors.log)"
