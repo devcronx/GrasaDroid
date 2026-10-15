@@ -316,38 +316,40 @@ static void *extract_thread(void *) {
     pthread_mutex_unlock(&g_lock);
     
     // Validar que los archivos existen y son legibles antes de extraer
-    struct stat st;
-    if (stat(dump.c_str(), &st) != 0) {
-        set_job("No se encontró el archivo del juego", true, 
-                "El archivo seleccionado no existe. Vuelve a seleccionarlo.");
-        goto done;
-    }
-    if (st.st_size < 1000000000) {  // Menos de 1GB es sospechoso para un NSP de Zelda
-        char msg[256];
-        snprintf(msg, sizeof(msg), "El archivo del juego parece incompleto (%.1f MB). Debe ser ~6 GB. Espera a que termine de copiarse y vuelve a intentarlo.", st.st_size / 1000000.0);
-        set_job(msg, true, "Si acabas de seleccionarlo, espera 5-10 minutos a que iOS termine de copiarlo.");
-        goto done;
-    }
-    if (stat(keys.c_str(), &st) != 0) {
-        set_job("No se encontró el archivo de keys", true,
-                "El archivo prod.keys no existe. Vuelve a seleccionarlo.");
-        goto done;
-    }
-    if (st.st_size < 100) {
-        set_job("El archivo de keys parece vacío o incompleto", true,
-                "Asegúrate de seleccionar tu prod.keys real de la Switch.");
-        goto done;
-    }
-    // Para NSP, advertir si no hay title.keys (pero permitir continuar por si el ticket lo tiene)
-    bool nsp_check = dump.size() > 4 && !strcasecmp(dump.c_str() + dump.size() - 4, ".nsp");
-    if (nsp_check && keys2.empty()) {
-        fprintf(stderr, "[launcher] ADVERTENCIA: NSP sin title.keys seleccionado. Se intentará extraer la titlekey del ticket.\n");
-    }
-    if (!keys2.empty()) {
-        if (stat(keys2.c_str(), &st) != 0) {
+    {
+        struct stat st;
+        bool valid = true;
+        if (stat(dump.c_str(), &st) != 0) {
+            set_job("No se encontró el archivo del juego", true, 
+                    "El archivo seleccionado no existe. Vuelve a seleccionarlo.");
+            valid = false;
+        } else if (st.st_size < 1000000000) {
+            char msg[256];
+            snprintf(msg, sizeof(msg), "El archivo del juego parece incompleto (%.1f MB). Debe ser ~6 GB.", st.st_size / 1000000.0);
+            set_job(msg, true, "Si acabas de seleccionarlo, espera 5-10 minutos a que iOS termine de copiarlo.");
+            valid = false;
+        } else if (stat(keys.c_str(), &st) != 0) {
+            set_job("No se encontró el archivo de keys", true,
+                    "El archivo prod.keys no existe. Vuelve a seleccionarlo.");
+            valid = false;
+        } else if (st.st_size < 100) {
+            set_job("El archivo de keys parece vacío o incompleto", true,
+                    "Asegúrate de seleccionar tu prod.keys real de la Switch.");
+            valid = false;
+        } else if (!keys2.empty() && stat(keys2.c_str(), &st) != 0) {
             set_job("No se encontró el archivo title.keys", true,
                     "El archivo title.keys no existe. Vuelve a seleccionarlo o déjalo vacío.");
-            goto done;
+            valid = false;
+        }
+        if (!valid) {
+            pthread_mutex_lock(&g_lock);
+            g_busy = false;
+            pthread_mutex_unlock(&g_lock);
+            return NULL;
+        }
+        bool nsp_check = dump.size() > 4 && !strcasecmp(dump.c_str() + dump.size() - 4, ".nsp");
+        if (nsp_check && keys2.empty()) {
+            fprintf(stderr, "[launcher] ADVERTENCIA: NSP sin title.keys seleccionado.\n");
         }
     }
     
