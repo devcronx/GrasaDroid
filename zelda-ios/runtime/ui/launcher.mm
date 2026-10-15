@@ -384,32 +384,36 @@ extern "C" void ios_file_picked(void *which, const char *path);
 - (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
     if (urls.count > 0) {
         NSURL *url = urls[0];
-        // Copiar el archivo al directorio de la app para acceso persistente
         NSString *fileName = url.lastPathComponent;
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
         NSString *docsDir = paths[0];
         NSString *destPath = [docsDir stringByAppendingPathComponent:fileName];
         
-        // Dar acceso al archivo
+        // FEEDBACK INMEDIATO: marcar como seleccionado antes de copiar
+        static char immediatePath[4096];
+        strncpy(immediatePath, [destPath UTF8String], sizeof(immediatePath) - 1);
+        immediatePath[sizeof(immediatePath) - 1] = '\0';
+        void *whichCopy = self.which;
+        // Mostrar "Seleccionado" inmediatamente en la UI
+        dispatch_async(dispatch_get_main_queue(), ^{
+            ios_file_picked(whichCopy, immediatePath);
+        });
+        
+        // Copiar el archivo en background
         if ([url startAccessingSecurityScopedResource]) {
-            NSError *error = nil;
             NSFileManager *fm = [NSFileManager defaultManager];
             if ([fm fileExistsAtPath:destPath]) [fm removeItemAtPath:destPath error:nil];
-            // Copiar en background para no bloquear la UI (archivos grandes como NSP de 6GB)
             NSString *destCopy = [destPath copy];
-            void *whichCopy = self.which;
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
                 NSError *copyError = nil;
-                if ([fm copyItemAtURL:url toURL:[NSURL fileURLWithPath:destCopy] error:&copyError]) {
-                    // Guardar la ruta en un buffer estático para que no se libere
-                    static char pathBuffer[4096];
-                    strncpy(pathBuffer, [destCopy UTF8String], sizeof(pathBuffer) - 1);
-                    pathBuffer[sizeof(pathBuffer) - 1] = '\0';
+                [fm copyItemAtURL:url toURL:[NSURL fileURLWithPath:destCopy] error:&copyError];
+                [url stopAccessingSecurityScopedResource];
+                // Si la copia falló, limpiar la selección
+                if (copyError) {
                     dispatch_async(dispatch_get_main_queue(), ^{
-                        ios_file_picked(whichCopy, pathBuffer);
+                        ios_file_picked(whichCopy, "");
                     });
                 }
-                [url stopAccessingSecurityScopedResource];
             });
         }
     }
