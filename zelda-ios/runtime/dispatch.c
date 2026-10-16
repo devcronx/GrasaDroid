@@ -136,21 +136,14 @@ GuestFn dispatch_lookup(uint64_t addr) {
     // SDK range (0x7000...-0x7080...): return a generic stub for now
     // The real SDK functions need HLE implementations
     if (addr >= 0x7000000000ull && addr < 0x7080000000ull) {
-        // Detect infinite loop: same address called many times
-        static uint64_t last_addr = 0;
-        static int repeat_count = 0;
-        if (addr == last_addr) {
-            repeat_count++;
-            if (repeat_count == 10000) {
-                char msg[256];
-                snprintf(msg, sizeof(msg), "SDK loop detected at %llx (called 10000x)", (unsigned long long)addr);
-                rt_fatal_messagebox(msg);
-                // Don't abort, just show the message and continue
-                repeat_count = 0;
-            }
-        } else {
-            last_addr = addr;
-            repeat_count = 0;
+        // Show the first SDK call so we know what's needed
+        static int first_sdk_shown = 0;
+        if (!first_sdk_shown) {
+            first_sdk_shown = 1;
+            char msg[256];
+            snprintf(msg, sizeof(msg), "First SDK call: %llx", (unsigned long long)addr);
+            rt_fatal_messagebox(msg);
+            // Continue after showing (don't abort)
         }
         sdk_last_pc = addr;
         return sdk_stub;
