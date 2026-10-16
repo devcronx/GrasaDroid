@@ -109,7 +109,16 @@ void *hle_alloc(uint64_t size) {
 }
 
 void dispatch_init(void) {
-    tables[0] = (FnTable){main_fn_addrs, main_fn_ptrs, main_fn_count, main_fn_addrs[0], main_fn_addrs[main_fn_count - 1]};
+    fprintf(stderr, "[dispatch] main_fn_count=%llu sdk_fn_count=%llu\n",
+            (unsigned long long)main_fn_count, (unsigned long long)sdk_fn_count);
+    if (main_fn_count > 0) {
+        fprintf(stderr, "[dispatch] main table: lo=%llx hi=%llx\n",
+                (unsigned long long)main_fn_addrs[0],
+                (unsigned long long)main_fn_addrs[main_fn_count - 1]);
+    }
+    tables[0] = (FnTable){main_fn_addrs, main_fn_ptrs, main_fn_count,
+                           main_fn_count ? main_fn_addrs[0] : 0,
+                           main_fn_count ? main_fn_addrs[main_fn_count - 1] : 0};
     tables[1] = (FnTable){sdk_fn_addrs, sdk_fn_ptrs, sdk_fn_count,
                            sdk_fn_count ? sdk_fn_addrs[0] : 0,
                            sdk_fn_count ? sdk_fn_addrs[sdk_fn_count - 1] : 0};
