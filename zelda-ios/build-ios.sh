@@ -187,7 +187,7 @@ EOF
             break
         fi
     done
-    if ! $CC $CFLAGS -c "$GAME_CODE_DIR/sdk_table.c" -o "$OBJ_DIR/game-code/sdk_table.o" 2>> "$BUILD_DIR/errors.log"; then
+    if ! $CC $CFLAGS -x c++ -include "$ZELDA_DIR/runtime/rando.h" -c "$GAME_CODE_DIR/sdk_table.c" -o "$OBJ_DIR/game-code/sdk_table.o" 2>> "$BUILD_DIR/errors.log"; then
         echo "    ERROR en sdk_table.c (ver errors.log)"
         GAME_FAILED=1
     fi
