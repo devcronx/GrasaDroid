@@ -12,57 +12,56 @@
 
 #ifdef PLATFORM_IOS
 // Portable fallbacks for Clang __builtin_elementwise_* (not available in iOS Clang).
+// Use statement expressions with runtime type dispatch to avoid type-checking issues.
 #include <math.h>
-static inline VT FN(_ew_abs_v)(VT a) {
-    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
-    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = u.l[i] < 0 ? -u.l[i] : u.l[i];
-    return r.v;
-}
-static inline VT FN(_ew_fma_v)(VT a, VT b, VT c) {
-    union { VT v; T l[sizeof(VT)/sizeof(T)]; } ua = {a}, ub = {b}, uc = {c}, r;
-    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = ua.l[i] * ub.l[i] + uc.l[i];
-    return r.v;
-}
-static inline VT FN(_ew_sqrt_v)(VT a) {
-    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
-    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = sqrt(u.l[i]);
-    return r.v;
-}
-static inline VT FN(_ew_rint_v)(VT a) {
-    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
-    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = rint(u.l[i]);
-    return r.v;
-}
-static inline VT FN(_ew_ceil_v)(VT a) {
-    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
-    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = ceil(u.l[i]);
-    return r.v;
-}
-static inline VT FN(_ew_floor_v)(VT a) {
-    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
-    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = floor(u.l[i]);
-    return r.v;
-}
-static inline VT FN(_ew_trunc_v)(VT a) {
-    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
-    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = trunc(u.l[i]);
-    return r.v;
-}
-static inline VT FN(_ew_round_v)(VT a) {
-    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
-    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = round(u.l[i]);
-    return r.v;
-}
-// Use __builtin_choose_expr to select vector vs scalar at compile time.
-// __builtin_types_compatible_p distinguishes VT (vector) from T (scalar).
-#define __builtin_elementwise_abs(a) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_abs_v)(a), ((a) < 0 ? -(a) : (a)))
-#define __builtin_elementwise_fma(a,b,c) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_fma_v)(a,b,c), ((a)*(b)+(c)))
-#define __builtin_elementwise_sqrt(a) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_sqrt_v)(a), sqrt(a))
-#define __builtin_elementwise_rint(a) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_rint_v)(a), rint(a))
-#define __builtin_elementwise_ceil(a) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_ceil_v)(a), ceil(a))
-#define __builtin_elementwise_floor(a) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_floor_v)(a), floor(a))
-#define __builtin_elementwise_trunc(a) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_trunc_v)(a), trunc(a))
-#define __builtin_elementwise_round(a) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_round_v)(a), round(a))
+#define __builtin_elementwise_abs(a) ({ __typeof__(a) _ew_a = (a); __typeof__(a) _ew_r; \
+    if (__builtin_types_compatible_p(__typeof__(_ew_a), VT)) { \
+        union { VT v; T l[sizeof(VT)/sizeof(T)]; } _u = {_ew_a}, _res; \
+        for (unsigned _i = 0; _i < sizeof(VT)/sizeof(T); _i++) _res.l[_i] = _u.l[_i] < 0 ? -_u.l[_i] : _u.l[_i]; \
+        _ew_r = _res.v; \
+    } else { _ew_r = _ew_a < 0 ? -_ew_a : _ew_a; } _ew_r; })
+#define __builtin_elementwise_fma(a,b,c) ({ __typeof__(a) _ew_a = (a), _ew_b = (b), _ew_c = (c); __typeof__(a) _ew_r; \
+    if (__builtin_types_compatible_p(__typeof__(_ew_a), VT)) { \
+        union { VT v; T l[sizeof(VT)/sizeof(T)]; } _ua = {_ew_a}, _ub = {_ew_b}, _uc = {_ew_c}, _res; \
+        for (unsigned _i = 0; _i < sizeof(VT)/sizeof(T); _i++) _res.l[_i] = _ua.l[_i] * _ub.l[_i] + _uc.l[_i]; \
+        _ew_r = _res.v; \
+    } else { _ew_r = _ew_a * _ew_b + _ew_c; } _ew_r; })
+#define __builtin_elementwise_sqrt(a) ({ __typeof__(a) _ew_a = (a); __typeof__(a) _ew_r; \
+    if (__builtin_types_compatible_p(__typeof__(_ew_a), VT)) { \
+        union { VT v; T l[sizeof(VT)/sizeof(T)]; } _u = {_ew_a}, _res; \
+        for (unsigned _i = 0; _i < sizeof(VT)/sizeof(T); _i++) _res.l[_i] = sqrt(_u.l[_i]); \
+        _ew_r = _res.v; \
+    } else { _ew_r = sqrt(_ew_a); } _ew_r; })
+#define __builtin_elementwise_rint(a) ({ __typeof__(a) _ew_a = (a); __typeof__(a) _ew_r; \
+    if (__builtin_types_compatible_p(__typeof__(_ew_a), VT)) { \
+        union { VT v; T l[sizeof(VT)/sizeof(T)]; } _u = {_ew_a}, _res; \
+        for (unsigned _i = 0; _i < sizeof(VT)/sizeof(T); _i++) _res.l[_i] = rint(_u.l[_i]); \
+        _ew_r = _res.v; \
+    } else { _ew_r = rint(_ew_a); } _ew_r; })
+#define __builtin_elementwise_ceil(a) ({ __typeof__(a) _ew_a = (a); __typeof__(a) _ew_r; \
+    if (__builtin_types_compatible_p(__typeof__(_ew_a), VT)) { \
+        union { VT v; T l[sizeof(VT)/sizeof(T)]; } _u = {_ew_a}, _res; \
+        for (unsigned _i = 0; _i < sizeof(VT)/sizeof(T); _i++) _res.l[_i] = ceil(_u.l[_i]); \
+        _ew_r = _res.v; \
+    } else { _ew_r = ceil(_ew_a); } _ew_r; })
+#define __builtin_elementwise_floor(a) ({ __typeof__(a) _ew_a = (a); __typeof__(a) _ew_r; \
+    if (__builtin_types_compatible_p(__typeof__(_ew_a), VT)) { \
+        union { VT v; T l[sizeof(VT)/sizeof(T)]; } _u = {_ew_a}, _res; \
+        for (unsigned _i = 0; _i < sizeof(VT)/sizeof(T); _i++) _res.l[_i] = floor(_u.l[_i]); \
+        _ew_r = _res.v; \
+    } else { _ew_r = floor(_ew_a); } _ew_r; })
+#define __builtin_elementwise_trunc(a) ({ __typeof__(a) _ew_a = (a); __typeof__(a) _ew_r; \
+    if (__builtin_types_compatible_p(__typeof__(_ew_a), VT)) { \
+        union { VT v; T l[sizeof(VT)/sizeof(T)]; } _u = {_ew_a}, _res; \
+        for (unsigned _i = 0; _i < sizeof(VT)/sizeof(T); _i++) _res.l[_i] = trunc(_u.l[_i]); \
+        _ew_r = _res.v; \
+    } else { _ew_r = trunc(_ew_a); } _ew_r; })
+#define __builtin_elementwise_round(a) ({ __typeof__(a) _ew_a = (a); __typeof__(a) _ew_r; \
+    if (__builtin_types_compatible_p(__typeof__(_ew_a), VT)) { \
+        union { VT v; T l[sizeof(VT)/sizeof(T)]; } _u = {_ew_a}, _res; \
+        for (unsigned _i = 0; _i < sizeof(VT)/sizeof(T); _i++) _res.l[_i] = round(_u.l[_i]); \
+        _ew_r = _res.v; \
+    } else { _ew_r = round(_ew_a); } _ew_r; })
 #endif
 
 SI U FN(fb)(T x) { U u; memcpy(&u, &x, sizeof u); return u; }
