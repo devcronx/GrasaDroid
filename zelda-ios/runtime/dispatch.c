@@ -127,6 +127,11 @@ void dispatch_init(void) {
 }
 
 GuestFn dispatch_lookup(uint64_t addr) {
+    // Translate main module addresses: SDK expects main at 0x7000000000,
+    // but our main table uses base 0x7100000000. Translate 0x7000... -> 0x7100...
+    if (addr >= 0x7000000000ull && addr < 0x7004000000ull) {
+        addr += 0x100000000ull;
+    }
     for (int t = 0; t < 2; t++) {
         FnTable *ft = &tables[t];
         if (addr < ft->lo || addr > ft->hi) continue;
