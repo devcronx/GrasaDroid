@@ -97,19 +97,31 @@ if [ -f "$GAME_CODE_TAR" ]; then
     echo "[GameCode] Extrayendo código recompilado..."
     GAME_CODE_DIR="$BUILD_DIR/game-code"
     mkdir -p "$GAME_CODE_DIR"
-    tar -xzf "$GAME_CODE_TAR" -C "$GAME_CODE_DIR"
+    if ! tar -xzf "$GAME_CODE_TAR" -C "$GAME_CODE_DIR" 2>> "$BUILD_DIR/errors.log"; then
+        echo "[GameCode] ERROR extrayendo tarball (ver errors.log)"
+        exit 1
+    fi
+    GAME_COUNT=$(ls "$GAME_CODE_DIR"/main_*.c 2>/dev/null | wc -l)
+    echo "[GameCode] Archivos extraídos: $GAME_COUNT"
+    if [ "$GAME_COUNT" -eq 0 ]; then
+        echo "[GameCode] ERROR: no se encontraron archivos main_*.c"
+        ls "$GAME_CODE_DIR/" | head -10
+        exit 1
+    fi
     
     echo "[GameCode] Compilando código del juego (esto tarda)..."
-    GAME_OBJS=""
+    mkdir -p "$OBJ_DIR/game-code"
+    GAME_FAILED=0
     for src in "$GAME_CODE_DIR"/main_*.c; do
-        obj="$OBJ_DIR/game-code/$(basename "${src%.c}.o")"
-        mkdir -p "$(dirname "$obj")"
+        [ -f "$src" ] || continue
+        obj="$OBJ_DIR/game-code/$(basename "$src" .c).o"
         if ! $CC $CFLAGS -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
             echo "    ERROR en $(basename $src) (ver errors.log)"
-            FAILED=1
+            GAME_FAILED=1
+            break
         fi
     done
-    if [ "$FAILED" = "1" ]; then
+    if [ "$GAME_FAILED" = "1" ]; then
         echo ""
         echo "=== ERRORES EN CÓDIGO DEL JUEGO ==="
         grep -E "error:" "$BUILD_DIR/errors.log" | head -30
