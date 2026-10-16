@@ -12,64 +12,57 @@
 
 #ifdef PLATFORM_IOS
 // Portable fallbacks for Clang __builtin_elementwise_* (not available in iOS Clang).
-// These operate lane-wise on the vector types via scalar ops, and pass through scalars.
 #include <math.h>
 static inline VT FN(_ew_abs_v)(VT a) {
     union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
     for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = u.l[i] < 0 ? -u.l[i] : u.l[i];
     return r.v;
 }
-static inline T FN(_ew_abs_s)(T a) { return a < 0 ? -a : a; }
 static inline VT FN(_ew_fma_v)(VT a, VT b, VT c) {
     union { VT v; T l[sizeof(VT)/sizeof(T)]; } ua = {a}, ub = {b}, uc = {c}, r;
     for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = ua.l[i] * ub.l[i] + uc.l[i];
     return r.v;
 }
-static inline T FN(_ew_fma_s)(T a, T b, T c) { return a * b + c; }
 static inline VT FN(_ew_sqrt_v)(VT a) {
     union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
     for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = sqrt(u.l[i]);
     return r.v;
 }
-static inline T FN(_ew_sqrt_s)(T a) { return sqrt(a); }
 static inline VT FN(_ew_rint_v)(VT a) {
     union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
     for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = rint(u.l[i]);
     return r.v;
 }
-static inline T FN(_ew_rint_s)(T a) { return rint(a); }
 static inline VT FN(_ew_ceil_v)(VT a) {
     union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
     for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = ceil(u.l[i]);
     return r.v;
 }
-static inline T FN(_ew_ceil_s)(T a) { return ceil(a); }
 static inline VT FN(_ew_floor_v)(VT a) {
     union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
     for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = floor(u.l[i]);
     return r.v;
 }
-static inline T FN(_ew_floor_s)(T a) { return floor(a); }
 static inline VT FN(_ew_trunc_v)(VT a) {
     union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
     for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = trunc(u.l[i]);
     return r.v;
 }
-static inline T FN(_ew_trunc_s)(T a) { return trunc(a); }
 static inline VT FN(_ew_round_v)(VT a) {
     union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
     for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = round(u.l[i]);
     return r.v;
 }
-static inline T FN(_ew_round_s)(T a) { return round(a); }
-#define __builtin_elementwise_abs(a) _Generic((a), VT: FN(_ew_abs_v)(a), T: FN(_ew_abs_s)(a), default: FN(_ew_abs_s)(a))
-#define __builtin_elementwise_fma(a,b,c) _Generic((a), VT: FN(_ew_fma_v)(a,b,c), T: FN(_ew_fma_s)(a,b,c), default: FN(_ew_fma_s)(a,b,c))
-#define __builtin_elementwise_sqrt(a) _Generic((a), VT: FN(_ew_sqrt_v)(a), T: FN(_ew_sqrt_s)(a), default: FN(_ew_sqrt_s)(a))
-#define __builtin_elementwise_rint(a) _Generic((a), VT: FN(_ew_rint_v)(a), T: FN(_ew_rint_s)(a), default: FN(_ew_rint_s)(a))
-#define __builtin_elementwise_ceil(a) _Generic((a), VT: FN(_ew_ceil_v)(a), T: FN(_ew_ceil_s)(a), default: FN(_ew_ceil_s)(a))
-#define __builtin_elementwise_floor(a) _Generic((a), VT: FN(_ew_floor_v)(a), T: FN(_ew_floor_s)(a), default: FN(_ew_floor_s)(a))
-#define __builtin_elementwise_trunc(a) _Generic((a), VT: FN(_ew_trunc_v)(a), T: FN(_ew_trunc_s)(a), default: FN(_ew_trunc_s)(a))
-#define __builtin_elementwise_round(a) _Generic((a), VT: FN(_ew_round_v)(a), T: FN(_ew_round_s)(a), default: FN(_ew_round_s)(a))
+// Use __builtin_choose_expr to select vector vs scalar at compile time.
+// __builtin_types_compatible_p distinguishes VT (vector) from T (scalar).
+#define __builtin_elementwise_abs(a) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_abs_v)(a), ((a) < 0 ? -(a) : (a)))
+#define __builtin_elementwise_fma(a,b,c) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_fma_v)(a,b,c), ((a)*(b)+(c)))
+#define __builtin_elementwise_sqrt(a) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_sqrt_v)(a), sqrt(a))
+#define __builtin_elementwise_rint(a) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_rint_v)(a), rint(a))
+#define __builtin_elementwise_ceil(a) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_ceil_v)(a), ceil(a))
+#define __builtin_elementwise_floor(a) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_floor_v)(a), floor(a))
+#define __builtin_elementwise_trunc(a) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_trunc_v)(a), trunc(a))
+#define __builtin_elementwise_round(a) __builtin_choose_expr(__builtin_types_compatible_p(__typeof__(a), VT), FN(_ew_round_v)(a), round(a))
 #endif
 
 SI U FN(fb)(T x) { U u; memcpy(&u, &x, sizeof u); return u; }
