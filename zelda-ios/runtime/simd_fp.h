@@ -10,6 +10,60 @@
 #define VK(v) ((VT){} + (T)(v))
 #define K(v) ((T)(v))
 
+#ifdef PLATFORM_IOS
+// Portable fallbacks for Clang __builtin_elementwise_* (not available in iOS Clang).
+// These operate lane-wise on the vector types via scalar ops.
+#include <math.h>
+static inline VT FN(_ew_abs)(VT a) {
+    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
+    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = u.l[i] < 0 ? -u.l[i] : u.l[i];
+    return r.v;
+}
+static inline VT FN(_ew_fma)(VT a, VT b, VT c) {
+    union { VT v; T l[sizeof(VT)/sizeof(T)]; } ua = {a}, ub = {b}, uc = {c}, r;
+    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = ua.l[i] * ub.l[i] + uc.l[i];
+    return r.v;
+}
+static inline VT FN(_ew_sqrt)(VT a) {
+    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
+    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = sqrt(u.l[i]);
+    return r.v;
+}
+static inline VT FN(_ew_rint)(VT a) {
+    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
+    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = rint(u.l[i]);
+    return r.v;
+}
+static inline VT FN(_ew_ceil)(VT a) {
+    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
+    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = ceil(u.l[i]);
+    return r.v;
+}
+static inline VT FN(_ew_floor)(VT a) {
+    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
+    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = floor(u.l[i]);
+    return r.v;
+}
+static inline VT FN(_ew_trunc)(VT a) {
+    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
+    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = trunc(u.l[i]);
+    return r.v;
+}
+static inline VT FN(_ew_round)(VT a) {
+    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
+    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = round(u.l[i]);
+    return r.v;
+}
+#define __builtin_elementwise_abs(a) FN(_ew_abs)(a)
+#define __builtin_elementwise_fma(a,b,c) FN(_ew_fma)(a,b,c)
+#define __builtin_elementwise_sqrt(a) FN(_ew_sqrt)(a)
+#define __builtin_elementwise_rint(a) FN(_ew_rint)(a)
+#define __builtin_elementwise_ceil(a) FN(_ew_ceil)(a)
+#define __builtin_elementwise_floor(a) FN(_ew_floor)(a)
+#define __builtin_elementwise_trunc(a) FN(_ew_trunc)(a)
+#define __builtin_elementwise_round(a) FN(_ew_round)(a)
+#endif
+
 SI U FN(fb)(T x) { U u; memcpy(&u, &x, sizeof u); return u; }
 SI T FN(fv)(U u) { T x; memcpy(&x, &u, sizeof x); return x; }
 SI int FN(isnan)(U u) { return (u & ~SGN) > EXPM; }
