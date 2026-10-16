@@ -11,7 +11,15 @@ extern "C" {
 #include "platform.h"
 
 #define LOG(...) fprintf(stderr, __VA_ARGS__)
-#define FATAL(...) (fprintf(stderr, "FATAL: " __VA_ARGS__), rt_fatal_trace())
+// FATAL shows a message box with the error so the user can screenshot it
+void rt_fatal_messagebox(const char *msg);
+#define FATAL(...) do { \
+    char _fatal_buf[1024]; \
+    snprintf(_fatal_buf, sizeof(_fatal_buf), __VA_ARGS__); \
+    fprintf(stderr, "FATAL: %s", _fatal_buf); \
+    rt_fatal_messagebox(_fatal_buf); \
+    rt_fatal_trace(); \
+} while(0)
 
 // ---- address space layout (guest addresses == host addresses)
 // macOS reserves 0x2_0000_0000-0x70_0000_0000, and guest addresses must fit in 39 bits, so the

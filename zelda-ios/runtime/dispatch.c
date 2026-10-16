@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <SDL3/SDL.h>
 
 #include "hle.h"
 
@@ -220,6 +221,18 @@ const char *rt_host_fn_name(uint64_t pc, uint64_t *offset) {
 static const char *host_sym(uint64_t pc, uint64_t *offset) {
     const char *s = plat_symbol(pc, offset);
     return s ? s : rt_host_fn_name(pc, offset);
+}
+
+void rt_fatal_messagebox(const char *msg) {
+    // Show the fatal error in a message box so the user can screenshot it
+    // Include table info for diagnosis
+    char full[2048];
+    snprintf(full, sizeof(full), "%s\n\nTable: count=%llu lo=%llx hi=%llx",
+             msg,
+             (unsigned long long)main_fn_count,
+             (unsigned long long)(main_fn_count ? main_fn_addrs[0] : 0),
+             (unsigned long long)(main_fn_count ? main_fn_addrs[main_fn_count-1] : 0));
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "LASRecomp Error", full, NULL);
 }
 
 void rt_fatal_trace(void) {
