@@ -1,5 +1,8 @@
 // Guest CPU state and helpers used by recompiled code.
 #pragma once
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -194,4 +197,7 @@ static inline uint32_t sdiv32(uint32_t a, uint32_t b) {
 // in that mode, so AArch64 hosts can build it too).
 #if !defined(__cplusplus) && !defined(__aarch64__)
 #include "simd.h"
+#endif
+#ifdef __cplusplus
+} // extern "C"
 #endif
