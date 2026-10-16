@@ -108,13 +108,13 @@ if [ -f "$GAME_CODE_TAR" ]; then
         ls "$GAME_CODE_DIR/" | head -10
         exit 1
     fi
-    # Fix C++ linkage for extern declarations in generated code (iOS Clang lacks __builtin_elementwise_*)
-    # The generated code has: { extern uint32_t rando_word(uint64_t); ... }
-    # When compiled as C++, this needs extern "C" block for correct linkage with C runtime
-    # Note: extern "C" cannot be used directly inside a function, must use extern "C" { ... } block
+    # Fix C++ linkage for extern declarations in generated code
+    # The generated code has: { extern uint32_t rando_word(uint64_t); ... } inside a function
+    # extern "C" cannot be used inside a function body in C++, so we remove the local extern
+    # and rely on the global declaration from rando.h (force-included with extern "C")
     echo "[GameCode] Aplicando fix de linkage C++..."
-    sed -i '' 's/extern uint32_t rando_word(uint64_t)/extern "C" { uint32_t rando_word(uint64_t); }/g' "$GAME_CODE_DIR"/main_*.c 2>/dev/null || \
-    sed -i 's/extern uint32_t rando_word(uint64_t)/extern "C" { uint32_t rando_word(uint64_t); }/g' "$GAME_CODE_DIR"/main_*.c 2>/dev/null || true
+    sed -i '' 's/{ extern uint32_t rando_word(uint64_t);/{/g' "$GAME_CODE_DIR"/main_*.c 2>/dev/null || \
+    sed -i 's/{ extern uint32_t rando_word(uint64_t);/{/g' "$GAME_CODE_DIR"/main_*.c 2>/dev/null || true
     
     echo "[GameCode] Compilando código del juego (esto tarda)..."
     mkdir -p "$OBJ_DIR/game-code"
@@ -123,7 +123,8 @@ if [ -f "$GAME_CODE_TAR" ]; then
         [ -f "$src" ] || continue
         obj="$OBJ_DIR/game-code/$(basename "$src" .c).o"
         # Compile game code as C++ for function overloading (iOS Clang lacks __builtin_elementwise_*)
-        if ! $CC $CFLAGS -x c++ -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
+        # Force-include rando.h with extern "C" for the rando_word function (local extern removed via sed)
+        if ! $CC $CFLAGS -x c++ -include "$ZELDA_DIR/runtime/rando.h" -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
             echo "    ERROR en $(basename $src) (ver errors.log)"
             GAME_FAILED=1
             break
