@@ -1,5 +1,8 @@
 // User settings (larecomp.ini next to the executable's working directory), edited from the in-game menu.
 #pragma once
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <stdbool.h>
 
 enum { ASPECT_UNLOCKED = 0, ASPECT_ORIGINAL = 1 };
@@ -59,3 +62,6 @@ extern Settings g_settings;
 
 void settings_load(void);
 void settings_save(void);
+#ifdef __cplusplus
+} // extern "C"
+#endif

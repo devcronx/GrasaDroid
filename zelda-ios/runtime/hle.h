@@ -1,5 +1,8 @@
 // Registration of host implementations for guest symbols.
 #pragma once
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <stdlib.h>
 // Environment lookups that run every frame / per call: looked up once per call site (the variables don't change
 // while the game runs). ENV("LARECOMP_X") -> const char * or NULL.
@@ -45,3 +48,6 @@ typedef void (*ResetFn)(void);
 
 #define RES_OK 0u
 #define MAKE_RESULT(module, desc) ((uint32_t)(module) | ((uint32_t)(desc) << 9))
+#ifdef __cplusplus
+} // extern "C"
+#endif

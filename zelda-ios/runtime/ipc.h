@@ -1,5 +1,8 @@
 // HIPC/CMIF message handling for HLE services.
 #pragma once
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "kernel.h"
 
 typedef struct {
@@ -87,3 +90,6 @@ typedef struct { const char *name; ServiceHandler handler; } ServiceDef;
     __attribute__((used, section(SERVICE_SECTION))) static const ServiceDef                 \
         HLE_CAT(svc_def_, __LINE__) = {sname, fn};                                          \
     static void fn(Service *s, IpcReq *req, IpcResp *resp)
+#ifdef __cplusplus
+} // extern "C"
+#endif
