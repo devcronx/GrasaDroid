@@ -122,6 +122,16 @@ if [ -f "$GAME_CODE_TAR" ]; then
     for src in "$GAME_CODE_DIR"/main_*.c; do
         [ -f "$src" ] || continue
         obj="$OBJ_DIR/game-code/$(basename "$src" .c).o"
+        # main_table.c contains the function tables (const arrays) - must be C, not C++
+        # In C++, const at file scope has internal linkage, breaking the tables
+        if [[ "$(basename "$src")" == "main_table.c" ]]; then
+            if ! $CC $CFLAGS -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
+                echo "    ERROR en $(basename $src) (ver errors.log)"
+                GAME_FAILED=1
+                break
+            fi
+            continue
+        fi
         # Compile game code as C++ for function overloading (iOS Clang lacks __builtin_elementwise_*)
         # Force-include rando.h with extern "C" for the rando_word function (local extern removed via sed)
         if ! $CC $CFLAGS -x c++ -include "$ZELDA_DIR/runtime/rando.h" -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
