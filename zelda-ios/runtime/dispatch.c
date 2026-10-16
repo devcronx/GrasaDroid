@@ -79,6 +79,14 @@ static void hle_unimplemented(Cpu *c) {
     c->x[0] = 0;
 }
 
+// Null function pointer handler: when game calls address 0, just return
+static void null_stub(Cpu *c) {
+    static int null_count = 0;
+    if (null_count++ < 3)
+        LOG("[dispatch] NULL function pointer called (lr=%llx) -> returning\n", c->x[30]);
+    // Just return to caller (x30 has return address)
+}
+
 uint64_t guest_sym(const char *name) {
     // small cache: callers pass string literals, so pointer identity is a good key
     static struct { const char *name; uint64_t addr; } cache[64];
@@ -127,6 +135,8 @@ void dispatch_init(void) {
 }
 
 GuestFn dispatch_lookup(uint64_t addr) {
+    // Null pointer: return stub that just returns
+    if (addr == 0) return null_stub;
     // Translate main module addresses: SDK expects main at 0x7000000000,
     // but our main table uses base 0x7100000000. Translate 0x7000... -> 0x7100...
     if (addr >= 0x7000000000ull && addr < 0x7004000000ull) {
