@@ -126,6 +126,11 @@ void dispatch_init(void) {
 }
 
 GuestFn dispatch_lookup(uint64_t addr) {
+    // SDK range (0x7000...-0x7080...): return a generic stub for now
+    // The real SDK functions need HLE implementations
+    if (addr >= 0x7000000000ull && addr < 0x7080000000ull) {
+        return sdk_stub;
+    }
     for (int t = 0; t < 2; t++) {
         FnTable *ft = &tables[t];
         if (addr < ft->lo || addr > ft->hi) continue;
@@ -221,6 +226,14 @@ const char *rt_host_fn_name(uint64_t pc, uint64_t *offset) {
 static const char *host_sym(uint64_t pc, uint64_t *offset) {
     const char *s = plat_symbol(pc, offset);
     return s ? s : rt_host_fn_name(pc, offset);
+}
+
+// Generic SDK stub: logs the address and returns 0 (success)
+// Many SDK init functions just need to return success
+static void sdk_stub(Cpu *c) {
+    // x0 is the return value register on ARM64
+    c->x[0] = 0;
+    // Return to caller: the runtime handles the return address
 }
 
 void rt_fatal_messagebox(const char *msg) {
