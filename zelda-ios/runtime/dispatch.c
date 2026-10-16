@@ -16,12 +16,6 @@ typedef struct { const uint64_t *addrs; const GuestFn *fns; uint64_t count, lo, 
 static FnTable tables[2];
 
 // Forward declaration for SDK stub
-static void sdk_stub(Cpu *c);
-
-// SDK call tracking for loop detection
-static uint64_t sdk_call_count = 0;
-static uint64_t sdk_last_pc = 0;
-
 // HLE stubs live at fake addresses HLE_BASE + 16*i
 #define MAX_HLE 4096
 typedef struct { const char *name; HostFn fn; } HleSlot;
@@ -133,21 +127,6 @@ void dispatch_init(void) {
 }
 
 GuestFn dispatch_lookup(uint64_t addr) {
-    // SDK range (0x7000...-0x7080...): return a generic stub for now
-    // The real SDK functions need HLE implementations
-    if (addr >= 0x7000000000ull && addr < 0x7080000000ull) {
-        // Show the first SDK call so we know what's needed
-        static int first_sdk_shown = 0;
-        if (!first_sdk_shown) {
-            first_sdk_shown = 1;
-            char msg[256];
-            snprintf(msg, sizeof(msg), "First SDK call: %llx", (unsigned long long)addr);
-            rt_fatal_messagebox(msg);
-            // Continue after showing (don't abort)
-        }
-        sdk_last_pc = addr;
-        return sdk_stub;
-    }
     for (int t = 0; t < 2; t++) {
         FnTable *ft = &tables[t];
         if (addr < ft->lo || addr > ft->hi) continue;
@@ -247,15 +226,6 @@ static const char *host_sym(uint64_t pc, uint64_t *offset) {
 
 // Generic SDK stub: logs the address and returns 0 (success)
 // Many SDK init functions just need to return success
-static void sdk_stub(Cpu *c) {
-    // x0 is the return value register on ARM64
-    c->x[0] = 0;
-    // Track calls to detect infinite loops
-    sdk_call_count++;
-    // The PC is not directly available here, but dispatch_lookup knows it
-    // For now, just return. The loop detection will be in dispatch_lookup.
-}
-
 void rt_fatal_messagebox(const char *msg) {
     // Show the fatal error in a message box so the user can screenshot it
     // Include table info for diagnosis

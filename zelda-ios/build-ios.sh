@@ -125,13 +125,36 @@ if [ -f "$GAME_CODE_TAR" ]; then
     sed -i 's/^const GuestFn main_fn_ptrs\[\] = {/extern const GuestFn main_fn_ptrs[] = {/' "$GAME_CODE_DIR/main_table.c"
     sed -i '' 's/^const uint64_t main_fn_count =/extern const uint64_t main_fn_count =/' "$GAME_CODE_DIR/main_table.c" 2>/dev/null || \
     sed -i 's/^const uint64_t main_fn_count =/extern const uint64_t main_fn_count =/' "$GAME_CODE_DIR/main_table.c"
-    # gen.py no generó tablas SDK pero dispatch.c las referencia: generar stub vacío con count=0.
-    cat > "$GAME_CODE_DIR/sdk_table.c" <<'EOF'
+    # SDK: extraer las tablas reales recompiladas (si existen)
+    SDK_CODE_TAR="$ZELDA_DIR/game-code/recomp-sdk.tar.gz"
+    if [ -f "$SDK_CODE_TAR" ]; then
+        echo "[GameCode] Extrayendo código SDK recompilado..."
+        if ! tar -xzf "$SDK_CODE_TAR" -C "$GAME_CODE_DIR" 2>> "$BUILD_DIR/errors.log"; then
+            echo "[GameCode] ERROR extrayendo SDK tarball (ver errors.log)"
+            exit 1
+        fi
+        SDK_COUNT=$(ls "$GAME_CODE_DIR"/sdk_*.c 2>/dev/null | wc -l)
+        echo "[GameCode] Archivos SDK extraídos: $SDK_COUNT"
+        # Aplicar los mismos fixes al SDK
+        sed -i '' 's/{ extern uint32_t rando_word(uint64_t);/{/g' "$GAME_CODE_DIR"/sdk_*.c 2>/dev/null || \
+        sed -i 's/{ extern uint32_t rando_word(uint64_t);/{/g' "$GAME_CODE_DIR"/sdk_*.c 2>/dev/null || true
+        echo "[GameCode] Dando linkage externo a las tablas de sdk_table.c..."
+        sed -i '' 's/^const uint64_t sdk_fn_addrs\[\] = {/extern const uint64_t sdk_fn_addrs[] = {/' "$GAME_CODE_DIR/sdk_table.c" 2>/dev/null || \
+        sed -i 's/^const uint64_t sdk_fn_addrs\[\] = {/extern const uint64_t sdk_fn_addrs[] = {/' "$GAME_CODE_DIR/sdk_table.c"
+        sed -i '' 's/^const GuestFn sdk_fn_ptrs\[\] = {/extern const GuestFn sdk_fn_ptrs[] = {/' "$GAME_CODE_DIR/sdk_table.c" 2>/dev/null || \
+        sed -i 's/^const GuestFn sdk_fn_ptrs\[\] = {/extern const GuestFn sdk_fn_ptrs[] = {/' "$GAME_CODE_DIR/sdk_table.c"
+        sed -i '' 's/^const uint64_t sdk_fn_count =/extern const uint64_t sdk_fn_count =/' "$GAME_CODE_DIR/sdk_table.c" 2>/dev/null || \
+        sed -i 's/^const uint64_t sdk_fn_count =/extern const uint64_t sdk_fn_count =/' "$GAME_CODE_DIR/sdk_table.c"
+    else
+        # Fallback: generar stub vacío si no hay SDK recompilado
+        echo "[GameCode] No hay SDK recompilado, generando stub vacío..."
+        cat > "$GAME_CODE_DIR/sdk_table.c" <<'EOF'
 #include "cpu.h"
 const uint64_t sdk_fn_addrs[] = {0};
 const GuestFn sdk_fn_ptrs[] = {0};
 const uint64_t sdk_fn_count = 0;
 EOF
+    fi
     
     echo "[GameCode] Compilando código del juego (esto tarda)..."
     mkdir -p "$OBJ_DIR/game-code"
@@ -149,7 +172,21 @@ EOF
             break
         fi
     done
-    echo "[GameCode] Compilando tabla SDK vacía..."
+    echo "[GameCode] Compilando tabla SDK..."
+    # Compilar los chunks del SDK (sdk_*.c) si existen
+    for src in "$GAME_CODE_DIR"/sdk_*.c; do
+        # Saltar sdk_table.c que se compila por separado abajo
+        case "$(basename "$src")" in
+            sdk_table.c) continue ;;
+        esac
+        [ -f "$src" ] || continue
+        obj="$OBJ_DIR/game-code/$(basename "$src" .c).o"
+        if ! $CC $CFLAGS -x c++ -include "$ZELDA_DIR/runtime/rando.h" -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
+            echo "    ERROR en $(basename $src) (ver errors.log)"
+            GAME_FAILED=1
+            break
+        fi
+    done
     if ! $CC $CFLAGS -c "$GAME_CODE_DIR/sdk_table.c" -o "$OBJ_DIR/game-code/sdk_table.o" 2>> "$BUILD_DIR/errors.log"; then
         echo "    ERROR en sdk_table.c (ver errors.log)"
         GAME_FAILED=1
