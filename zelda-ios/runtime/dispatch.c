@@ -132,6 +132,23 @@ GuestFn dispatch_lookup(uint64_t addr) {
     // SDK range (0x7000...-0x7080...): return a generic stub for now
     // The real SDK functions need HLE implementations
     if (addr >= 0x7000000000ull && addr < 0x7080000000ull) {
+        // Detect infinite loop: same address called many times
+        static uint64_t last_addr = 0;
+        static int repeat_count = 0;
+        if (addr == last_addr) {
+            repeat_count++;
+            if (repeat_count == 10000) {
+                char msg[256];
+                snprintf(msg, sizeof(msg), "SDK loop detected at %llx (called 10000x)", (unsigned long long)addr);
+                rt_fatal_messagebox(msg);
+                // Don't abort, just show the message and continue
+                repeat_count = 0;
+            }
+        } else {
+            last_addr = addr;
+            repeat_count = 0;
+        }
+        sdk_last_pc = addr;
         return sdk_stub;
     }
     for (int t = 0; t < 2; t++) {
@@ -233,10 +250,16 @@ static const char *host_sym(uint64_t pc, uint64_t *offset) {
 
 // Generic SDK stub: logs the address and returns 0 (success)
 // Many SDK init functions just need to return success
+static uint64_t sdk_call_count = 0;
+static uint64_t sdk_last_pc = 0;
+
 static void sdk_stub(Cpu *c) {
     // x0 is the return value register on ARM64
     c->x[0] = 0;
-    // Return to caller: the runtime handles the return address
+    // Track calls to detect infinite loops
+    sdk_call_count++;
+    // The PC is not directly available here, but dispatch_lookup knows it
+    // For now, just return. The loop detection will be in dispatch_lookup.
 }
 
 void rt_fatal_messagebox(const char *msg) {
