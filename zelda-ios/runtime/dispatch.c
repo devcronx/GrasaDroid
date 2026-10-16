@@ -110,7 +110,9 @@ void *hle_alloc(uint64_t size) {
 
 void dispatch_init(void) {
     tables[0] = (FnTable){main_fn_addrs, main_fn_ptrs, main_fn_count, main_fn_addrs[0], main_fn_addrs[main_fn_count - 1]};
-    tables[1] = (FnTable){sdk_fn_addrs, sdk_fn_ptrs, sdk_fn_count, sdk_fn_addrs[0], sdk_fn_addrs[sdk_fn_count - 1]};
+    tables[1] = (FnTable){sdk_fn_addrs, sdk_fn_ptrs, sdk_fn_count,
+                           sdk_fn_count ? sdk_fn_addrs[0] : 0,
+                           sdk_fn_count ? sdk_fn_addrs[sdk_fn_count - 1] : 0};
 }
 
 GuestFn dispatch_lookup(uint64_t addr) {

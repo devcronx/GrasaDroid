@@ -115,6 +115,23 @@ if [ -f "$GAME_CODE_TAR" ]; then
     echo "[GameCode] Aplicando fix de linkage C++..."
     sed -i '' 's/{ extern uint32_t rando_word(uint64_t);/{/g' "$GAME_CODE_DIR"/main_*.c 2>/dev/null || \
     sed -i 's/{ extern uint32_t rando_word(uint64_t);/{/g' "$GAME_CODE_DIR"/main_*.c 2>/dev/null || true
+    # main_table.c: las tablas const necesitan linkage EXTERNO explícito.
+    # En C++ un const a nivel de archivo tiene linkage interno y dispatch.c (C)
+    # no las vería. Con `extern` explícito quedan visibles.
+    echo "[GameCode] Dando linkage externo a las tablas de main_table.c..."
+    sed -i '' 's/^const uint64_t main_fn_addrs\[\] = {/extern const uint64_t main_fn_addrs[] = {/' "$GAME_CODE_DIR/main_table.c" 2>/dev/null || \
+    sed -i 's/^const uint64_t main_fn_addrs\[\] = {/extern const uint64_t main_fn_addrs[] = {/' "$GAME_CODE_DIR/main_table.c"
+    sed -i '' 's/^const GuestFn main_fn_ptrs\[\] = {/extern const GuestFn main_fn_ptrs[] = {/' "$GAME_CODE_DIR/main_table.c" 2>/dev/null || \
+    sed -i 's/^const GuestFn main_fn_ptrs\[\] = {/extern const GuestFn main_fn_ptrs[] = {/' "$GAME_CODE_DIR/main_table.c"
+    sed -i '' 's/^const uint64_t main_fn_count =/extern const uint64_t main_fn_count =/' "$GAME_CODE_DIR/main_table.c" 2>/dev/null || \
+    sed -i 's/^const uint64_t main_fn_count =/extern const uint64_t main_fn_count =/' "$GAME_CODE_DIR/main_table.c"
+    # gen.py no generó tablas SDK pero dispatch.c las referencia: generar stub vacío con count=0.
+    cat > "$GAME_CODE_DIR/sdk_table.c" <<'EOF'
+#include "cpu.h"
+const uint64_t sdk_fn_addrs[] = {0};
+const GuestFn sdk_fn_ptrs[] = {0};
+const uint64_t sdk_fn_count = 0;
+EOF
     
     echo "[GameCode] Compilando código del juego (esto tarda)..."
     mkdir -p "$OBJ_DIR/game-code"
@@ -122,24 +139,21 @@ if [ -f "$GAME_CODE_TAR" ]; then
     for src in "$GAME_CODE_DIR"/main_*.c; do
         [ -f "$src" ] || continue
         obj="$OBJ_DIR/game-code/$(basename "$src" .c).o"
-        # main_table.c contains the function tables (const arrays) - must be C, not C++
-        # In C++, const at file scope has internal linkage, breaking the tables
-        if [[ "$(basename "$src")" == "main_table.c" ]]; then
-            if ! $CC $CFLAGS -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
-                echo "    ERROR en $(basename $src) (ver errors.log)"
-                GAME_FAILED=1
-                break
-            fi
-            continue
-        fi
         # Compile game code as C++ for function overloading (iOS Clang lacks __builtin_elementwise_*)
         # Force-include rando.h with extern "C" for the rando_word function (local extern removed via sed)
+        # main_table.c también va como C++: con `extern const` explícito las tablas
+        # tienen linkage externo y los prototipos f_7100... manglean igual que sus definiciones.
         if ! $CC $CFLAGS -x c++ -include "$ZELDA_DIR/runtime/rando.h" -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
             echo "    ERROR en $(basename $src) (ver errors.log)"
             GAME_FAILED=1
             break
         fi
     done
+    echo "[GameCode] Compilando tabla SDK vacía..."
+    if ! $CC $CFLAGS -c "$GAME_CODE_DIR/sdk_table.c" -o "$OBJ_DIR/game-code/sdk_table.o" 2>> "$BUILD_DIR/errors.log"; then
+        echo "    ERROR en sdk_table.c (ver errors.log)"
+        GAME_FAILED=1
+    fi
     if [ "$GAME_FAILED" = "1" ]; then
         echo ""
         echo "=== ERRORES EN CÓDIGO DEL JUEGO ==="
