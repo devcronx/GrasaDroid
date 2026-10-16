@@ -15,6 +15,9 @@ extern const uint64_t main_fn_count, sdk_fn_count;
 typedef struct { const uint64_t *addrs; const GuestFn *fns; uint64_t count, lo, hi; } FnTable;
 static FnTable tables[2];
 
+// Forward declaration for SDK stub
+static void sdk_stub(Cpu *c);
+
 // HLE stubs live at fake addresses HLE_BASE + 16*i
 #define MAX_HLE 4096
 typedef struct { const char *name; HostFn fn; } HleSlot;
