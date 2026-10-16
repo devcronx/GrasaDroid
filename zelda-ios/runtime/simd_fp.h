@@ -12,59 +12,52 @@
 
 #ifdef PLATFORM_IOS
 // Portable fallbacks for Clang __builtin_elementwise_* (not available in iOS Clang).
-// Use __typeof__ for type-agnostic lane-wise operations.
+// For fma/abs, direct operators work elementwise for both scalars and vectors.
+// For sqrt/rint/etc., use lane-wise loops via helper functions (vector-only).
 #include <math.h>
-#define __builtin_elementwise_abs(a) ({ __typeof__(a) _ew_a = (a); __typeof__(a) _ew_r; \
-    if (sizeof(_ew_a) == sizeof(VT) && sizeof(VT) != sizeof(T)) { \
-        union { __typeof__(_ew_a) v; T l[sizeof(__typeof__(_ew_a))/sizeof(T)]; } _u = {_ew_a}, _res; \
-        for (unsigned _i = 0; _i < sizeof(__typeof__(_ew_a))/sizeof(T); _i++) _res.l[_i] = _u.l[_i] < 0 ? -_u.l[_i] : _u.l[_i]; \
-        _ew_r = _res.v; \
-    } else { _ew_r = _ew_a < 0 ? -_ew_a : _ew_a; } _ew_r; })
-#define __builtin_elementwise_fma(a,b,c) ({ __typeof__(a) _ew_a = (a), _ew_b = (b), _ew_c = (c); __typeof__(a) _ew_r; \
-    if (sizeof(_ew_a) == sizeof(VT) && sizeof(VT) != sizeof(T)) { \
-        union { __typeof__(_ew_a) v; T l[sizeof(__typeof__(_ew_a))/sizeof(T)]; } _ua = {_ew_a}, _ub = {_ew_b}, _uc = {_ew_c}, _res; \
-        for (unsigned _i = 0; _i < sizeof(__typeof__(_ew_a))/sizeof(T); _i++) _res.l[_i] = _ua.l[_i] * _ub.l[_i] + _uc.l[_i]; \
-        _ew_r = _res.v; \
-    } else { _ew_r = _ew_a * _ew_b + _ew_c; } _ew_r; })
-#define __builtin_elementwise_sqrt(a) ({ __typeof__(a) _ew_a = (a); __typeof__(a) _ew_r; \
-    if (sizeof(_ew_a) == sizeof(VT) && sizeof(VT) != sizeof(T)) { \
-        union { __typeof__(_ew_a) v; T l[sizeof(__typeof__(_ew_a))/sizeof(T)]; } _u = {_ew_a}, _res; \
-        for (unsigned _i = 0; _i < sizeof(__typeof__(_ew_a))/sizeof(T); _i++) _res.l[_i] = sqrt(_u.l[_i]); \
-        _ew_r = _res.v; \
-    } else { _ew_r = sqrt(_ew_a); } _ew_r; })
-#define __builtin_elementwise_rint(a) ({ __typeof__(a) _ew_a = (a); __typeof__(a) _ew_r; \
-    if (sizeof(_ew_a) == sizeof(VT) && sizeof(VT) != sizeof(T)) { \
-        union { __typeof__(_ew_a) v; T l[sizeof(__typeof__(_ew_a))/sizeof(T)]; } _u = {_ew_a}, _res; \
-        for (unsigned _i = 0; _i < sizeof(__typeof__(_ew_a))/sizeof(T); _i++) _res.l[_i] = rint(_u.l[_i]); \
-        _ew_r = _res.v; \
-    } else { _ew_r = rint(_ew_a); } _ew_r; })
-#define __builtin_elementwise_ceil(a) ({ __typeof__(a) _ew_a = (a); __typeof__(a) _ew_r; \
-    if (sizeof(_ew_a) == sizeof(VT) && sizeof(VT) != sizeof(T)) { \
-        union { __typeof__(_ew_a) v; T l[sizeof(__typeof__(_ew_a))/sizeof(T)]; } _u = {_ew_a}, _res; \
-        for (unsigned _i = 0; _i < sizeof(__typeof__(_ew_a))/sizeof(T); _i++) _res.l[_i] = ceil(_u.l[_i]); \
-        _ew_r = _res.v; \
-    } else { _ew_r = ceil(_ew_a); } _ew_r; })
-#define __builtin_elementwise_floor(a) ({ __typeof__(a) _ew_a = (a); __typeof__(a) _ew_r; \
-    if (sizeof(_ew_a) == sizeof(VT) && sizeof(VT) != sizeof(T)) { \
-        union { __typeof__(_ew_a) v; T l[sizeof(__typeof__(_ew_a))/sizeof(T)]; } _u = {_ew_a}, _res; \
-        for (unsigned _i = 0; _i < sizeof(__typeof__(_ew_a))/sizeof(T); _i++) _res.l[_i] = floor(_u.l[_i]); \
-        _ew_r = _res.v; \
-    } else { _ew_r = floor(_ew_a); } _ew_r; })
-#define __builtin_elementwise_trunc(a) ({ __typeof__(a) _ew_a = (a); __typeof__(a) _ew_r; \
-    if (sizeof(_ew_a) == sizeof(VT) && sizeof(VT) != sizeof(T)) { \
-        union { __typeof__(_ew_a) v; T l[sizeof(__typeof__(_ew_a))/sizeof(T)]; } _u = {_ew_a}, _res; \
-        for (unsigned _i = 0; _i < sizeof(__typeof__(_ew_a))/sizeof(T); _i++) _res.l[_i] = trunc(_u.l[_i]); \
-        _ew_r = _res.v; \
-    } else { _ew_r = trunc(_ew_a); } _ew_r; })
-#define __builtin_elementwise_round(a) ({ __typeof__(a) _ew_a = (a); __typeof__(a) _ew_r; \
-    if (sizeof(_ew_a) == sizeof(VT) && sizeof(VT) != sizeof(T)) { \
-        union { __typeof__(_ew_a) v; T l[sizeof(__typeof__(_ew_a))/sizeof(T)]; } _u = {_ew_a}, _res; \
-        for (unsigned _i = 0; _i < sizeof(__typeof__(_ew_a))/sizeof(T); _i++) _res.l[_i] = round(_u.l[_i]); \
-        _ew_r = _res.v; \
-    } else { _ew_r = round(_ew_a); } _ew_r; })
-// Scalar helpers (not needed with the above, but kept for FBAD/rsqrts)
-#define _EW_ABS_S(a) ((a) < 0 ? -(a) : (a))
-#define _EW_FMA_S(a,b,c) ((a)*(b)+(c))
+static inline VT FN(_ew_sqrt)(VT a) {
+    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
+    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = sqrt(u.l[i]);
+    return r.v;
+}
+static inline VT FN(_ew_rint)(VT a) {
+    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
+    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = rint(u.l[i]);
+    return r.v;
+}
+static inline VT FN(_ew_ceil)(VT a) {
+    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
+    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = ceil(u.l[i]);
+    return r.v;
+}
+static inline VT FN(_ew_floor)(VT a) {
+    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
+    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = floor(u.l[i]);
+    return r.v;
+}
+static inline VT FN(_ew_trunc)(VT a) {
+    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
+    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = trunc(u.l[i]);
+    return r.v;
+}
+static inline VT FN(_ew_round)(VT a) {
+    union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
+    for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = round(u.l[i]);
+    return r.v;
+}
+// abs and fma: direct operators work for both scalars and vectors
+#define __builtin_elementwise_abs(a) ((a) < 0 ? -(a) : (a))
+#define __builtin_elementwise_fma(a,b,c) ((a)*(b)+(c))
+// sqrt/rint/etc: need lane-wise for vectors; for scalars, the function call would fail,
+// so we use a trick: the vector functions above, but for scalars we need direct calls.
+// Since these are only used in vector contexts in FCALC (except rsqrts which is scalar),
+// we handle rsqrts separately below.
+#define __builtin_elementwise_sqrt(a) FN(_ew_sqrt)(a)
+#define __builtin_elementwise_rint(a) FN(_ew_rint)(a)
+#define __builtin_elementwise_ceil(a) FN(_ew_ceil)(a)
+#define __builtin_elementwise_floor(a) FN(_ew_floor)(a)
+#define __builtin_elementwise_trunc(a) FN(_ew_trunc)(a)
+#define __builtin_elementwise_round(a) FN(_ew_round)(a)
 #endif
 
 SI U FN(fb)(T x) { U u; memcpy(&u, &x, sizeof u); return u; }
@@ -265,6 +258,15 @@ SI VTU FN(vcmp)(Cpu *c, int op, VT a, VT b) {
 // ---- rounding to integral (FRINT*): rm 0 N, 1 P, 2 M, 3 Z, 4 A; 5 X / 6 I = FPCR mode
 // (rint = ties-to-even: the host stays in round-to-nearest outside the slow paths; no roundeven in MinGW's CRT)
 SI T FN(rnd)(T x, int rm) {
+#ifdef PLATFORM_IOS
+    switch (rm) {
+    case 0: return rint(x);
+    case 1: return ceil(x);
+    case 2: return floor(x);
+    case 3: return trunc(x);
+    default: return round(x);
+    }
+#else
     switch (rm) {
     case 0: return __builtin_elementwise_rint(x);
     case 1: return __builtin_elementwise_ceil(x);
@@ -272,6 +274,7 @@ SI T FN(rnd)(T x, int rm) {
     case 3: return __builtin_elementwise_trunc(x);
     default: return __builtin_elementwise_round(x);
     }
+#endif
 }
 SI T FN(frint)(Cpu *c, T x, int rm) {
     x = FN(fz)(c, x);
