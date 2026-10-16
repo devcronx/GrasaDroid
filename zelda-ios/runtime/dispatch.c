@@ -18,6 +18,10 @@ static FnTable tables[2];
 // Forward declaration for SDK stub
 static void sdk_stub(Cpu *c);
 
+// SDK call tracking for loop detection
+static uint64_t sdk_call_count = 0;
+static uint64_t sdk_last_pc = 0;
+
 // HLE stubs live at fake addresses HLE_BASE + 16*i
 #define MAX_HLE 4096
 typedef struct { const char *name; HostFn fn; } HleSlot;
@@ -250,9 +254,6 @@ static const char *host_sym(uint64_t pc, uint64_t *offset) {
 
 // Generic SDK stub: logs the address and returns 0 (success)
 // Many SDK init functions just need to return success
-static uint64_t sdk_call_count = 0;
-static uint64_t sdk_last_pc = 0;
-
 static void sdk_stub(Cpu *c) {
     // x0 is the return value register on ARM64
     c->x[0] = 0;
