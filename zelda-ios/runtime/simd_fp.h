@@ -12,52 +12,76 @@
 
 #ifdef PLATFORM_IOS
 // Portable fallbacks for Clang __builtin_elementwise_* (not available in iOS Clang).
-// For fma/abs, direct operators work elementwise for both scalars and vectors.
-// For sqrt/rint/etc., use lane-wise loops via helper functions (vector-only).
+// Game code is compiled as C++ for function overloading.
 #include <math.h>
 static inline VT FN(_ew_sqrt)(VT a) {
     union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
     for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = sqrt(u.l[i]);
     return r.v;
 }
+static inline T FN(_ew_sqrt_s)(T a) { return sqrt(a); }
 static inline VT FN(_ew_rint)(VT a) {
     union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
     for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = rint(u.l[i]);
     return r.v;
 }
+static inline T FN(_ew_rint_s)(T a) { return rint(a); }
 static inline VT FN(_ew_ceil)(VT a) {
     union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
     for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = ceil(u.l[i]);
     return r.v;
 }
+static inline T FN(_ew_ceil_s)(T a) { return ceil(a); }
 static inline VT FN(_ew_floor)(VT a) {
     union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
     for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = floor(u.l[i]);
     return r.v;
 }
+static inline T FN(_ew_floor_s)(T a) { return floor(a); }
 static inline VT FN(_ew_trunc)(VT a) {
     union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
     for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = trunc(u.l[i]);
     return r.v;
 }
+static inline T FN(_ew_trunc_s)(T a) { return trunc(a); }
 static inline VT FN(_ew_round)(VT a) {
     union { VT v; T l[sizeof(VT)/sizeof(T)]; } u = {a}, r;
     for (unsigned i = 0; i < sizeof(VT)/sizeof(T); i++) r.l[i] = round(u.l[i]);
     return r.v;
 }
-// abs and fma: direct operators work for both scalars and vectors
+static inline T FN(_ew_round_s)(T a) { return round(a); }
+// abs and fma: direct operators work for both scalars and vectors in C++
 #define __builtin_elementwise_abs(a) ((a) < 0 ? -(a) : (a))
 #define __builtin_elementwise_fma(a,b,c) ((a)*(b)+(c))
-// sqrt/rint/etc: need lane-wise for vectors; for scalars, the function call would fail,
-// so we use a trick: the vector functions above, but for scalars we need direct calls.
-// Since these are only used in vector contexts in FCALC (except rsqrts which is scalar),
-// we handle rsqrts separately below.
+// For sqrt/rint/etc., use overloaded functions (C++ only)
+#ifdef __cplusplus
+static inline VT __ew_sqrt(VT a) { return FN(_ew_sqrt)(a); }
+static inline T __ew_sqrt(T a) { return FN(_ew_sqrt_s)(a); }
+static inline VT __ew_rint(VT a) { return FN(_ew_rint)(a); }
+static inline T __ew_rint(T a) { return FN(_ew_rint_s)(a); }
+static inline VT __ew_ceil(VT a) { return FN(_ew_ceil)(a); }
+static inline T __ew_ceil(T a) { return FN(_ew_ceil_s)(a); }
+static inline VT __ew_floor(VT a) { return FN(_ew_floor)(a); }
+static inline T __ew_floor(T a) { return FN(_ew_floor_s)(a); }
+static inline VT __ew_trunc(VT a) { return FN(_ew_trunc)(a); }
+static inline T __ew_trunc(T a) { return FN(_ew_trunc_s)(a); }
+static inline VT __ew_round(VT a) { return FN(_ew_round)(a); }
+static inline T __ew_round(T a) { return FN(_ew_round_s)(a); }
+#define __builtin_elementwise_sqrt(a) __ew_sqrt(a)
+#define __builtin_elementwise_rint(a) __ew_rint(a)
+#define __builtin_elementwise_ceil(a) __ew_ceil(a)
+#define __builtin_elementwise_floor(a) __ew_floor(a)
+#define __builtin_elementwise_trunc(a) __ew_trunc(a)
+#define __builtin_elementwise_round(a) __ew_round(a)
+#else
+// C fallback: vector-only (scalar sites must avoid these)
 #define __builtin_elementwise_sqrt(a) FN(_ew_sqrt)(a)
 #define __builtin_elementwise_rint(a) FN(_ew_rint)(a)
 #define __builtin_elementwise_ceil(a) FN(_ew_ceil)(a)
 #define __builtin_elementwise_floor(a) FN(_ew_floor)(a)
 #define __builtin_elementwise_trunc(a) FN(_ew_trunc)(a)
 #define __builtin_elementwise_round(a) FN(_ew_round)(a)
+#endif
 #endif
 
 SI U FN(fb)(T x) { U u; memcpy(&u, &x, sizeof u); return u; }

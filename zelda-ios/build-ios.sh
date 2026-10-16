@@ -115,7 +115,8 @@ if [ -f "$GAME_CODE_TAR" ]; then
     for src in "$GAME_CODE_DIR"/main_*.c; do
         [ -f "$src" ] || continue
         obj="$OBJ_DIR/game-code/$(basename "$src" .c).o"
-        if ! $CC $CFLAGS -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
+        # Compile game code as C++ for function overloading (iOS Clang lacks __builtin_elementwise_*)
+        if ! $CC $CFLAGS -x c++ -c "$src" -o "$obj" 2>> "$BUILD_DIR/errors.log"; then
             echo "    ERROR en $(basename $src) (ver errors.log)"
             GAME_FAILED=1
             break
