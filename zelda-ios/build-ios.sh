@@ -110,10 +110,11 @@ if [ -f "$GAME_CODE_TAR" ]; then
     fi
     # Fix C++ linkage for extern declarations in generated code (iOS Clang lacks __builtin_elementwise_*)
     # The generated code has: { extern uint32_t rando_word(uint64_t); ... }
-    # When compiled as C++, this needs extern "C" for correct linkage with C runtime
+    # When compiled as C++, this needs extern "C" block for correct linkage with C runtime
+    # Note: extern "C" cannot be used directly inside a function, must use extern "C" { ... } block
     echo "[GameCode] Aplicando fix de linkage C++..."
-    sed -i '' 's/extern uint32_t rando_word/extern "C" uint32_t rando_word/g' "$GAME_CODE_DIR"/main_*.c 2>/dev/null || \
-    sed -i 's/extern uint32_t rando_word/extern "C" uint32_t rando_word/g' "$GAME_CODE_DIR"/main_*.c 2>/dev/null || true
+    sed -i '' 's/extern uint32_t rando_word(uint64_t)/extern "C" { uint32_t rando_word(uint64_t); }/g' "$GAME_CODE_DIR"/main_*.c 2>/dev/null || \
+    sed -i 's/extern uint32_t rando_word(uint64_t)/extern "C" { uint32_t rando_word(uint64_t); }/g' "$GAME_CODE_DIR"/main_*.c 2>/dev/null || true
     
     echo "[GameCode] Compilando código del juego (esto tarda)..."
     mkdir -p "$OBJ_DIR/game-code"
