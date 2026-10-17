@@ -135,6 +135,24 @@ static void boot(const char *root) {
     kernel_init();
     dispatch_init();
 
+    // Pre-initialize the global at 0x7101cc8000+0xb50 to skip problematic init in f_7100fed790.
+    // The game expects a 0xf0-byte structure with vtable pointers at offsets 0x8 and 0x78.
+    // We place a dummy structure at 0x7300000000 (safe, unused guest address).
+    {
+        uint64_t dummy_addr = 0x7300000000ull;
+        uint64_t global_addr = 0x7101cc8000ull + 0xb50ull;
+        uint64_t vtable = 0x7101c45690ull;  // From game's rodata, used as vtable pointer
+        // Zero the structure
+        memset((void*)(uintptr_t)dummy_addr, 0, 0xf0);
+        // Set vtable pointers
+        *(uint64_t*)(uintptr_t)(dummy_addr + 0x8) = vtable;
+        *(uint64_t*)(uintptr_t)(dummy_addr + 0x78) = vtable;
+        // Point the global at our dummy structure
+        *(uint64_t*)(uintptr_t)global_addr = dummy_addr;
+        fprintf(stderr, "[boot] Pre-initialized global at 0x%llx -> 0x%llx\n",
+                (unsigned long long)global_addr, (unsigned long long)dummy_addr);
+    }
+
     uint32_t stack_size = 0x100000;
     int prio = 44;
     FILE *f = fopen(npdm_path, "rb");
