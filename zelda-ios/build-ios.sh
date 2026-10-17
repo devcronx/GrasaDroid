@@ -108,6 +108,14 @@ if [ -f "$GAME_CODE_TAR" ]; then
         ls "$GAME_CODE_DIR/" | head -10
         exit 1
     fi
+    # Apply patch to skip problematic init in f_7100fed790 (force dummy address)
+    PATCH_FILE="$ZELDA_DIR/game-code/f7100fed790.patch"
+    if [ -f "$PATCH_FILE" ]; then
+        echo "[GameCode] Aplicando parche f7100fed790..."
+        if ! patch -p0 -d "$GAME_CODE_DIR" < "$PATCH_FILE" 2>> "$BUILD_DIR/errors.log"; then
+            echo "[GameCode] WARNING: no se pudo aplicar el parche (ver errors.log)"
+        fi
+    fi
     # Fix C++ linkage for extern declarations in generated code
     # The generated code has: { extern uint32_t rando_word(uint64_t); ... } inside a function
     # extern "C" cannot be used inside a function body in C++, so we remove the local extern

@@ -1,0 +1,11 @@
+--- main_333.c.orig
++++ main_333.c
+@@ -26006,7 +26006,9 @@
+     c->x[8] = (uint64_t)(0x7101cc8000ull);
+     c->x[1] = (uint64_t)(0ull | c->x[0]);
+     { uint64_t ea = c->x[8] + 0xb50ull; uint64_t v = LD64(ea); c->x[0] = (uint64_t)(v); }
+-    if (c->x[0] == 0) { goto L_7100fed7c4; }
++    c->x[0] = 0x7300000000ull; // FORCE: use dummy, skip problematic init
++    // if (c->x[0] == 0) { goto L_7100fed7c4; } // DISABLED
+ L_7100fed7b0:;
+     c->x[30] = 0x7100fed7b4ull; f_7100ff1660(c);
