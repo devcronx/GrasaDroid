@@ -108,29 +108,43 @@ static void crash_handler(int sig, siginfo_t *si, void *ctx) {
     lr = uc->uc_mcontext->__ss.__lr;
 #endif
     if (rt_fault_watch(fa, pc)) return;
-    // Null page access: emulate load as returning 0 instead of crashing
+    // Null page access: emulate as returning 0 instead of crashing
     // This handles the case where game reads from null pointer + offset
     if (fa < 0x1000 && pc != 0) {
         static int null_read_count = 0;
         if (null_read_count++ < 5) {
-            fprintf(stderr, "[crash_handler] Null page read at %#llx (pc=%#llx) -> returning 0\n",
+            fprintf(stderr, "[crash_handler] Null page access at %#llx (pc=%#llx) -> emulating\n",
                     (unsigned long long)fa, (unsigned long long)pc);
         }
-        // Decode ARM64 instruction to find destination register
-        // For LDR (immediate, 64-bit): 1111100101xxxxxxxxxxxxxxxxxxxx
-        // Rd is bits [4:0]
-        uint32_t insn = *(uint32_t *)(uintptr_t)pc;
-        int rd = insn & 0x1f;
-        // Set destination register to 0
-        // uc_mcontext->__ss.__x[0..28] are x0-x28
-        if (rd < 29) {
 #if defined(__aarch64__)
-            uc->uc_mcontext->__ss.__x[rd] = 0;
-            // Advance PC past the faulting instruction (4 bytes for ARM64)
-            uc->uc_mcontext->__ss.__pc = pc + 4;
-            return; // Resume execution
-#endif
+        // Decode ARM64 instruction to find destination register
+        // For most LDR/STR: Rt is bits [4:0]
+        uint32_t insn = *(uint32_t *)(uintptr_t)pc;
+        int rt = insn & 0x1f;
+        // Check if it's a load (bit 22 = 1 for LDR, 0 for STR in most encodings)
+        // Also check for LDP/STP (load/store pair) which have Rt2 in bits [14:10]
+        bool is_load = (insn >> 22) & 1;
+        bool is_pair = ((insn >> 27) & 0x1f) == 0x14 || ((insn >> 27) & 0x1f) == 0x15; // LDP/STP
+
+        if (is_pair) {
+            // Load/store pair: Rt in [4:0], Rt2 in [14:10]
+            int rt2 = (insn >> 10) & 0x1f;
+            if (is_load) {
+                if (rt < 29) uc->uc_mcontext->__ss.__x[rt] = 0;
+                if (rt2 < 29) uc->uc_mcontext->__ss.__x[rt2] = 0;
+            }
+            // For stores, just skip (don't write to null)
+        } else {
+            // Single load/store
+            if (is_load && rt < 29) {
+                uc->uc_mcontext->__ss.__x[rt] = 0;
+            }
+            // For stores, just skip the instruction
         }
+        // Advance PC past the faulting instruction (4 bytes for ARM64)
+        uc->uc_mcontext->__ss.__pc = pc + 4;
+        return; // Resume execution
+#endif
         // If we can't decode, fall through to crash
     }
     char what[32];
