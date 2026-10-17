@@ -108,12 +108,13 @@ static void crash_handler(int sig, siginfo_t *si, void *ctx) {
     lr = uc->uc_mcontext->__ss.__lr;
 #endif
     if (rt_fault_watch(fa, pc)) return;
-    // Null page access: emulate as returning 0 instead of crashing
+    // Low address access: emulate as returning 0 instead of crashing
     // This handles the case where game reads from null pointer + offset
-    if (fa < 0x1000 && pc != 0) {
+    // (e.g., 0x158, 0xf8, 0x8130 - all small offsets from null)
+    if (fa < 0x10000 && pc != 0) {
         static int null_read_count = 0;
         if (null_read_count++ < 5) {
-            fprintf(stderr, "[crash_handler] Null page access at %#llx (pc=%#llx) -> emulating\n",
+            fprintf(stderr, "[crash_handler] Low address access at %#llx (pc=%#llx) -> emulating\n",
                     (unsigned long long)fa, (unsigned long long)pc);
         }
 #if defined(__aarch64__)
