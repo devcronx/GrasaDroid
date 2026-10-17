@@ -113,10 +113,24 @@ static void crash_handler(int sig, siginfo_t *si, void *ctx) {
     // (e.g., 0x158, 0xf8, 0x8130 - all small offsets from null)
     if (fa < 0x10000 && pc != 0) {
         static int null_read_count = 0;
+        static uint64_t last_fa = 0, last_pc = 0;
+        static int repeat_count = 0;
         if (null_read_count++ < 5) {
             fprintf(stderr, "[crash_handler] Low address access at %#llx (pc=%#llx) -> emulating\n",
                     (unsigned long long)fa, (unsigned long long)pc);
         }
+        // Spin-loop detection: if same fa+pc repeats many times, game is stuck
+        // waiting for a non-zero value. Return 1 to break the loop.
+        if (fa == last_fa && pc == last_pc) {
+            repeat_count++;
+            if (repeat_count == 1000) {
+                fprintf(stderr, "[crash_handler] Spin loop detected at %#llx (pc=%#llx), breaking with 1\n",
+                        (unsigned long long)fa, (unsigned long long)pc);
+            }
+        } else {
+            last_fa = fa; last_pc = pc; repeat_count = 0;
+        }
+        int return_val = (repeat_count >= 1000) ? 1 : 0;
 #if defined(__aarch64__)
         // Decode ARM64 instruction to find destination register
         // For most LDR/STR: Rt is bits [4:0]
@@ -131,14 +145,14 @@ static void crash_handler(int sig, siginfo_t *si, void *ctx) {
             // Load/store pair: Rt in [4:0], Rt2 in [14:10]
             int rt2 = (insn >> 10) & 0x1f;
             if (is_load) {
-                if (rt < 29) uc->uc_mcontext->__ss.__x[rt] = 0;
-                if (rt2 < 29) uc->uc_mcontext->__ss.__x[rt2] = 0;
+                if (rt < 29) uc->uc_mcontext->__ss.__x[rt] = return_val;
+                if (rt2 < 29) uc->uc_mcontext->__ss.__x[rt2] = return_val;
             }
             // For stores, just skip (don't write to null)
         } else {
             // Single load/store
             if (is_load && rt < 29) {
-                uc->uc_mcontext->__ss.__x[rt] = 0;
+                uc->uc_mcontext->__ss.__x[rt] = return_val;
             }
             // For stores, just skip the instruction
         }
